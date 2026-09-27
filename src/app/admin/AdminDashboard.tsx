@@ -6,6 +6,7 @@ import {
   logoutAdminAction,
   updateProfileAction,
   addSocialLinkAction,
+  updateSocialLinkAction,
   toggleSocialLinkActiveAction,
   deleteSocialLinkAction,
   saveProjectAction,
@@ -587,6 +588,7 @@ function SocialsTab({
   setSocials: React.Dispatch<React.SetStateAction<SocialLink[]>>;
   showNotification: (msg: string) => void;
 }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [platform, setPlatform] = useState("GitHub");
   const [url, setUrl] = useState("");
   const [icon, setIcon] = useState("github");
@@ -611,6 +613,24 @@ function SocialsTab({
     if (matched) setIcon(matched.icon);
   };
 
+  const startEdit = (soc: SocialLink) => {
+    setEditingId(soc.id);
+    setPlatform(soc.platform);
+    setUrl(soc.url);
+    setIcon(soc.icon);
+    setIsActive(soc.isActive);
+    setDisplayOrder(soc.displayOrder);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setPlatform("GitHub");
+    setUrl("");
+    setIcon("github");
+    setIsActive(true);
+    setDisplayOrder(socials.length + 1);
+  };
+
   const handleToggle = async (id: string, currentActive: boolean) => {
     const nextVal = !currentActive;
     setSocials((prev) =>
@@ -626,12 +646,43 @@ function SocialsTab({
     if (!confirm("Are you sure you want to delete this social link?")) return;
     setSocials((prev) => prev.filter((item) => item.id !== id));
     await deleteSocialLinkAction(id);
+    if (editingId === id) cancelEdit();
     showNotification("Social link deleted");
   };
 
   const handleAddSocial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
+
+    if (editingId) {
+      const res = await updateSocialLinkAction(editingId, {
+        platform,
+        url: url.trim(),
+        icon,
+        isActive,
+        displayOrder,
+      });
+
+      if (res.success) {
+        setSocials((prev) =>
+          prev.map((s) =>
+            s.id === editingId
+              ? {
+                  ...s,
+                  platform,
+                  url: url.trim(),
+                  icon,
+                  isActive,
+                  displayOrder,
+                }
+              : s
+          )
+        );
+        cancelEdit();
+        showNotification("Social link updated successfully");
+      }
+      return;
+    }
 
     const res = await addSocialLinkAction({
       platform,
@@ -741,6 +792,15 @@ function SocialsTab({
 
                 <button
                   type="button"
+                  onClick={() => startEdit(soc)}
+                  className="p-1.5 text-zinc-400 hover:text-white transition-colors"
+                  title="Edit social link"
+                >
+                  <PencilSimple size={16} />
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => handleDelete(soc.id)}
                   className="p-1.5 text-zinc-500 hover:text-rose-400 transition-colors"
                   title="Delete social link"
@@ -753,12 +813,23 @@ function SocialsTab({
         </div>
       </div>
 
-      {/* Quick Add Form */}
-      <div className="p-6 rounded-xl border border-zinc-800 bg-[#121215]">
-        <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-rose-400 mb-4 flex items-center gap-1.5">
-          <Plus size={14} weight="bold" />
-          <span>Add New Social Channel</span>
-        </h3>
+      {/* Add / Edit Form */}
+      <div className={`p-6 rounded-xl border transition-colors ${editingId ? "border-rose-500/50 bg-[#16161a]" : "border-zinc-800 bg-[#121215]"}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+            {editingId ? <PencilSimple size={14} weight="bold" /> : <Plus size={14} weight="bold" />}
+            <span>{editingId ? "Edit Social Channel" : "Add New Social Channel"}</span>
+          </h3>
+          {editingId && (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="text-xs font-mono text-zinc-400 hover:text-white px-2.5 py-1 rounded bg-zinc-800"
+            >
+              Cancel Edit
+            </button>
+          )}
+        </div>
 
         <form onSubmit={handleAddSocial} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -803,7 +874,7 @@ function SocialsTab({
                   onChange={(e) => setIsActive(e.target.checked)}
                   className="rounded border-zinc-800 text-rose-500 focus:ring-rose-500"
                 />
-                <span>Set Active Tag ON immediately</span>
+                <span>Set Active Tag ON</span>
               </label>
 
               <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
@@ -821,8 +892,8 @@ function SocialsTab({
               type="submit"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-mono font-medium text-white bg-rose-600 hover:bg-rose-500 active:scale-[0.98] transition-all"
             >
-              <Plus size={14} weight="bold" />
-              <span>Add Social Channel</span>
+              {editingId ? <FloppyDisk size={14} weight="bold" /> : <Plus size={14} weight="bold" />}
+              <span>{editingId ? "Update Social Channel" : "Add Social Channel"}</span>
             </button>
           </div>
         </form>
@@ -1398,6 +1469,7 @@ function ExperiencesTab({
   showNotification: (msg: string) => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [role, setRole] = useState("");
   const [company, setCompany] = useState("");
   const [companyUrl, setCompanyUrl] = useState("");
@@ -1407,6 +1479,36 @@ function ExperiencesTab({
   const [description, setDescription] = useState("");
   const [highlightsInput, setHighlightsInput] = useState("");
 
+  const resetForm = () => {
+    setIsEditing(false);
+    setEditingId(null);
+    setRole("");
+    setCompany("");
+    setCompanyUrl("");
+    setLocation("");
+    setStartDate("");
+    setEndDate("Present");
+    setDescription("");
+    setHighlightsInput("");
+  };
+
+  const startEdit = (exp: Experience) => {
+    setIsEditing(true);
+    setEditingId(exp.id);
+    setRole(exp.role);
+    setCompany(exp.company);
+    setCompanyUrl(exp.companyUrl || "");
+    setLocation(exp.location);
+    setStartDate(exp.startDate);
+    setEndDate(exp.endDate);
+    setDescription(exp.description);
+    try {
+      setHighlightsInput(JSON.parse(exp.highlights).join("\n"));
+    } catch {
+      setHighlightsInput(exp.highlights);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const highlights = highlightsInput
@@ -1415,6 +1517,7 @@ function ExperiencesTab({
       .filter(Boolean);
 
     const data = {
+      id: editingId || undefined,
       role,
       company,
       companyUrl,
@@ -1423,28 +1526,47 @@ function ExperiencesTab({
       endDate,
       description,
       highlights,
-      displayOrder: experiences.length + 1,
+      displayOrder: editingId
+        ? experiences.find((e) => e.id === editingId)?.displayOrder || 1
+        : experiences.length + 1,
     };
 
     const res = await saveExperienceAction(data);
-    if (res.success && res.id) {
-      setExperiences((prev) => [
-        ...prev,
-        {
-          ...data,
-          id: res.id!,
-          highlights: JSON.stringify(highlights),
-        },
-      ]);
-      setIsEditing(false);
-      showNotification("Experience added");
+    if (res.success) {
+      if (editingId) {
+        setExperiences((prev) =>
+          prev.map((e) =>
+            e.id === editingId
+              ? {
+                  ...e,
+                  ...data,
+                  id: editingId,
+                  highlights: JSON.stringify(highlights),
+                }
+              : e
+          )
+        );
+        showNotification("Experience updated successfully");
+      } else {
+        setExperiences((prev) => [
+          ...prev,
+          {
+            ...data,
+            id: res.id!,
+            highlights: JSON.stringify(highlights),
+          },
+        ]);
+        showNotification("Experience added successfully");
+      }
+      resetForm();
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure?")) return;
+    if (!confirm("Are you sure you want to delete this position?")) return;
     setExperiences((prev) => prev.filter((e) => e.id !== id));
     await deleteExperienceAction(id);
+    if (editingId === id) resetForm();
     showNotification("Experience deleted");
   };
 
@@ -1458,14 +1580,19 @@ function ExperiencesTab({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsEditing(!isEditing)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium text-white bg-rose-600 hover:bg-rose-500"
-        >
-          <Plus size={14} weight="bold" />
-          <span>Add Position</span>
-        </button>
+        {!isEditing && (
+          <button
+            type="button"
+            onClick={() => {
+              resetForm();
+              setIsEditing(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium text-white bg-rose-600 hover:bg-rose-500"
+          >
+            <Plus size={14} weight="bold" />
+            <span>Add Position</span>
+          </button>
+        )}
       </div>
 
       {isEditing && (
@@ -1473,6 +1600,20 @@ function ExperiencesTab({
           onSubmit={handleSave}
           className="p-6 rounded-xl border border-rose-500/30 bg-[#121215] space-y-4"
         >
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+              {editingId ? <PencilSimple size={14} weight="bold" /> : <Plus size={14} weight="bold" />}
+              <span>{editingId ? "Edit Position" : "Add Position"}</span>
+            </h3>
+            <button
+              type="button"
+              onClick={resetForm}
+              className="text-xs font-mono text-zinc-400 hover:text-white px-2 py-1 rounded bg-zinc-800"
+            >
+              Cancel
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-mono text-zinc-400 mb-1">
@@ -1576,7 +1717,7 @@ function ExperiencesTab({
           <div className="flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setIsEditing(false)}
+              onClick={resetForm}
               className="px-3 py-1.5 rounded text-xs font-mono text-zinc-400 border border-zinc-800"
             >
               Cancel
@@ -1585,7 +1726,7 @@ function ExperiencesTab({
               type="submit"
               className="px-4 py-1.5 rounded text-xs font-mono font-medium text-white bg-rose-600 hover:bg-rose-500"
             >
-              Save Experience
+              {editingId ? "Update Position" : "Save Experience"}
             </button>
           </div>
         </form>
@@ -1605,13 +1746,24 @@ function ExperiencesTab({
                 {exp.startDate} — {exp.endDate} ({exp.location})
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => handleDelete(exp.id)}
-              className="p-1.5 text-zinc-500 hover:text-rose-400"
-            >
-              <Trash size={16} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => startEdit(exp)}
+                className="p-1.5 text-zinc-400 hover:text-white"
+                title="Edit position"
+              >
+                <PencilSimple size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(exp.id)}
+                className="p-1.5 text-zinc-500 hover:text-rose-400"
+                title="Delete position"
+              >
+                <Trash size={16} />
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -1631,14 +1783,61 @@ function SkillsTab({
   setSkills: React.Dispatch<React.SetStateAction<Skill[]>>;
   showNotification: (msg: string) => void;
 }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Languages & Core");
   const [level, setLevel] = useState("Expert");
   const [isHighlighted, setIsHighlighted] = useState(false);
 
+  const startEdit = (sk: Skill) => {
+    setEditingId(sk.id);
+    setName(sk.name);
+    setCategory(sk.category);
+    setLevel(sk.level);
+    setIsHighlighted(sk.isHighlighted);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setName("");
+    setCategory("Languages & Core");
+    setLevel("Expert");
+    setIsHighlighted(false);
+  };
+
   const handleAddSkill = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+
+    if (editingId) {
+      const res = await saveSkillAction({
+        id: editingId,
+        name: name.trim(),
+        category,
+        level,
+        isHighlighted,
+        displayOrder: skills.find((s) => s.id === editingId)?.displayOrder || 1,
+      });
+
+      if (res.success) {
+        setSkills((prev) =>
+          prev.map((s) =>
+            s.id === editingId
+              ? {
+                  ...s,
+                  name: name.trim(),
+                  category,
+                  level,
+                  isHighlighted,
+                }
+              : s
+          )
+        );
+        cancelEdit();
+        showNotification("Skill updated successfully");
+      }
+      return;
+    }
 
     const res = await saveSkillAction({
       name: name.trim(),
@@ -1661,13 +1860,15 @@ function SkillsTab({
         },
       ]);
       setName("");
-      showNotification("Skill added");
+      showNotification("Skill added successfully");
     }
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this skill?")) return;
     setSkills((prev) => prev.filter((s) => s.id !== id));
     await deleteSkillAction(id);
+    if (editingId === id) cancelEdit();
     showNotification("Skill deleted");
   };
 
@@ -1682,11 +1883,13 @@ function SkillsTab({
 
       <form
         onSubmit={handleAddSkill}
-        className="p-5 rounded-xl border border-zinc-800 bg-[#121215] flex flex-wrap items-end gap-3"
+        className={`p-5 rounded-xl border transition-colors flex flex-wrap items-end gap-3 ${
+          editingId ? "border-rose-500/50 bg-[#16161a]" : "border-zinc-800 bg-[#121215]"
+        }`}
       >
         <div className="flex-1 min-w-[140px]">
           <label className="block text-xs font-mono text-zinc-400 mb-1">
-            Skill Name
+            {editingId ? "Edit Skill Name" : "Skill Name"}
           </label>
           <input
             type="text"
@@ -1738,12 +1941,23 @@ function SkillsTab({
           <span>Highlight</span>
         </label>
 
-        <button
-          type="submit"
-          className="px-4 py-2 rounded-lg text-xs font-mono font-medium text-white bg-rose-600 hover:bg-rose-500"
-        >
-          Add Skill
-        </button>
+        <div className="flex items-center gap-2">
+          {editingId && (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="px-3 py-1.5 rounded-lg text-xs font-mono text-zinc-400 hover:text-white border border-zinc-800"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            type="submit"
+            className="px-4 py-2 rounded-lg text-xs font-mono font-medium text-white bg-rose-600 hover:bg-rose-500"
+          >
+            {editingId ? "Update Skill" : "Add Skill"}
+          </button>
+        </div>
       </form>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1763,13 +1977,24 @@ function SkillsTab({
                 {sk.category} • {sk.level}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => handleDelete(sk.id)}
-              className="text-zinc-500 hover:text-rose-400 p-1"
-            >
-              <Trash size={14} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => startEdit(sk)}
+                className="text-zinc-400 hover:text-white p-1"
+                title="Edit skill"
+              >
+                <PencilSimple size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(sk.id)}
+                className="text-zinc-500 hover:text-rose-400 p-1"
+                title="Delete skill"
+              >
+                <Trash size={14} />
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -1791,15 +2016,66 @@ function TestimonialsTab({
   showNotification: (msg: string) => void;
   onUpload: (file: File) => Promise<string | null>;
 }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [author, setAuthor] = useState("");
   const [role, setRole] = useState("");
   const [company, setCompany] = useState("");
   const [content, setContent] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
 
+  const startEdit = (test: Testimonial) => {
+    setEditingId(test.id);
+    setAuthor(test.author);
+    setRole(test.role);
+    setCompany(test.company);
+    setContent(test.content);
+    setAvatarUrl(test.avatarUrl || "");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setAuthor("");
+    setRole("");
+    setCompany("");
+    setContent("");
+    setAvatarUrl("");
+  };
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!author.trim() || !content.trim()) return;
+
+    if (editingId) {
+      const res = await saveTestimonialAction({
+        id: editingId,
+        author: author.trim(),
+        role: role.trim(),
+        company: company.trim(),
+        content: content.trim(),
+        avatarUrl: avatarUrl.trim() || undefined,
+        displayOrder: testimonials.find((t) => t.id === editingId)?.displayOrder || 1,
+      });
+
+      if (res.success) {
+        setTestimonials((prev) =>
+          prev.map((t) =>
+            t.id === editingId
+              ? {
+                  ...t,
+                  author: author.trim(),
+                  role: role.trim(),
+                  company: company.trim(),
+                  content: content.trim(),
+                  avatarUrl: avatarUrl.trim() || null,
+                }
+              : t
+          )
+        );
+        cancelEdit();
+        showNotification("Testimonial updated successfully");
+      }
+      return;
+    }
 
     const res = await saveTestimonialAction({
       author: author.trim(),
@@ -1828,29 +2104,51 @@ function TestimonialsTab({
       setCompany("");
       setContent("");
       setAvatarUrl("");
-      showNotification("Testimonial added");
+      showNotification("Testimonial added successfully");
     }
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this testimonial?")) return;
     setTestimonials((prev) => prev.filter((t) => t.id !== id));
     await deleteTestimonialAction(id);
+    if (editingId === id) cancelEdit();
     showNotification("Testimonial deleted");
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-bold text-white">Client &amp; Peer Testimonials</h2>
-        <p className="text-xs text-zinc-400 font-mono">
-          Quotes endorsing your engineering architecture (max 3 lines recommended)
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-white">Client &amp; Peer Testimonials</h2>
+          <p className="text-xs text-zinc-400 font-mono">
+            Quotes endorsing your engineering architecture (max 3 lines recommended)
+          </p>
+        </div>
       </div>
 
       <form
         onSubmit={handleAdd}
-        className="p-5 rounded-xl border border-zinc-800 bg-[#121215] space-y-4"
+        className={`p-5 rounded-xl border transition-colors space-y-4 ${
+          editingId ? "border-rose-500/50 bg-[#16161a]" : "border-zinc-800 bg-[#121215]"
+        }`}
       >
+        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+          <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+            {editingId ? <PencilSimple size={14} weight="bold" /> : <Plus size={14} weight="bold" />}
+            <span>{editingId ? "Edit Testimonial" : "Add Testimonial"}</span>
+          </h3>
+          {editingId && (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="text-xs font-mono text-zinc-400 hover:text-white px-2 py-1 rounded bg-zinc-800"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-mono text-zinc-400 mb-1">
@@ -1922,12 +2220,21 @@ function TestimonialsTab({
           />
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {editingId && (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="px-3 py-1.5 rounded-lg text-xs font-mono text-zinc-400 hover:text-white border border-zinc-800"
+            >
+              Cancel
+            </button>
+          )}
           <button
             type="submit"
             className="px-4 py-2 rounded-lg text-xs font-mono font-medium text-white bg-rose-600 hover:bg-rose-500"
           >
-            Add Testimonial
+            {editingId ? "Update Testimonial" : "Add Testimonial"}
           </button>
         </div>
       </form>
@@ -1947,13 +2254,24 @@ function TestimonialsTab({
                 {test.role} at <span className="text-rose-400">{test.company}</span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => handleDelete(test.id)}
-              className="text-zinc-500 hover:text-rose-400 p-1"
-            >
-              <Trash size={16} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => startEdit(test)}
+                className="p-1.5 text-zinc-400 hover:text-white"
+                title="Edit testimonial"
+              >
+                <PencilSimple size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDelete(test.id)}
+                className="p-1.5 text-zinc-500 hover:text-rose-400"
+                title="Delete testimonial"
+              >
+                <Trash size={16} />
+              </button>
+            </div>
           </div>
         ))}
       </div>

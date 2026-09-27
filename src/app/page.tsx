@@ -42,7 +42,7 @@ export default async function HomePage() {
   const projectsData = await db
     .select()
     .from(schema.projects)
-    .orderBy(asc(schema.projects.displayOrder));
+    .orderBy(desc(schema.projects.featured), asc(schema.projects.displayOrder));
   const experiencesData = await db
     .select()
     .from(schema.experiences)
@@ -50,7 +50,7 @@ export default async function HomePage() {
   const skillsData = await db
     .select()
     .from(schema.skills)
-    .orderBy(asc(schema.skills.displayOrder));
+    .orderBy(desc(schema.skills.isHighlighted), asc(schema.skills.displayOrder));
   const testimonialsData = await db
     .select()
     .from(schema.testimonials)

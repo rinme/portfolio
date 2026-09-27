@@ -1424,8 +1424,8 @@ function ProjectsTab({
     const res = await saveProjectAction(projectData);
     if (res.success) {
       if (editingId) {
-        setProjects((prev) =>
-          prev.map((p) =>
+        setProjects((prev) => {
+          const updated = prev.map((p) =>
             p.id === editingId
               ? {
                   ...p,
@@ -1434,19 +1434,29 @@ function ProjectsTab({
                   tags: JSON.stringify(tags),
                 }
               : p
-          )
-        );
+          );
+          const feat = updated.filter((p) => p.featured);
+          const oth = updated.filter((p) => !p.featured);
+          return [...feat, ...oth].map((p, idx) => ({ ...p, displayOrder: idx + 1 }));
+        });
         showNotification("Project updated");
       } else {
-        setProjects((prev) => [
-          ...prev,
-          {
-            ...projectData,
-            id: res.id!,
-            tags: JSON.stringify(tags),
-            createdAt: Date.now(),
-          },
-        ]);
+        const newProj = {
+          ...projectData,
+          id: res.id!,
+          tags: JSON.stringify(tags),
+          createdAt: Date.now(),
+        };
+        setProjects((prev) => {
+          const feat = prev.filter((p) => p.featured);
+          const oth = prev.filter((p) => !p.featured);
+          if (newProj.featured) {
+            feat.push(newProj);
+          } else {
+            oth.push(newProj);
+          }
+          return [...feat, ...oth].map((p, idx) => ({ ...p, displayOrder: idx + 1 }));
+        });
         showNotification("Project added");
       }
       resetForm();
@@ -1460,22 +1470,85 @@ function ProjectsTab({
     showNotification("Project deleted");
   };
 
-  const handleMove = async (index: number, direction: "up" | "down") => {
+  const featuredProjects = projects.filter((p) => p.featured);
+  const otherProjects = projects.filter((p) => !p.featured);
+
+  const handleMoveFeatured = async (index: number, direction: "up" | "down") => {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= projects.length) return;
+    if (targetIndex < 0 || targetIndex >= featuredProjects.length) return;
 
-    const newProjects = [...projects];
-    const [moved] = newProjects.splice(index, 1);
-    newProjects.splice(targetIndex, 0, moved);
+    const newFeatured = [...featuredProjects];
+    const [moved] = newFeatured.splice(index, 1);
+    newFeatured.splice(targetIndex, 0, moved);
 
-    const updatedProjects = newProjects.map((p, idx) => ({
-      ...p,
-      displayOrder: idx + 1,
-    }));
+    const merged = [...newFeatured, ...otherProjects];
+    const updated = merged.map((p, idx) => ({ ...p, displayOrder: idx + 1 }));
 
-    setProjects(updatedProjects);
-    showNotification("Projects order updated");
-    await reorderItemsAction("projects", updatedProjects.map((p) => p.id));
+    setProjects(updated);
+    showNotification("Featured projects order updated");
+    await reorderItemsAction("projects", updated.map((p) => p.id));
+  };
+
+  const handleMoveOther = async (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= otherProjects.length) return;
+
+    const newOther = [...otherProjects];
+    const [moved] = newOther.splice(index, 1);
+    newOther.splice(targetIndex, 0, moved);
+
+    const merged = [...featuredProjects, ...newOther];
+    const updated = merged.map((p, idx) => ({ ...p, displayOrder: idx + 1 }));
+
+    setProjects(updated);
+    showNotification("Other projects order updated");
+    await reorderItemsAction("projects", updated.map((p) => p.id));
+  };
+
+  const toggleFeatured = async (proj: Project) => {
+    const nextFeatured = !proj.featured;
+    const feat = featuredProjects.filter((p) => p.id !== proj.id);
+    const oth = otherProjects.filter((p) => p.id !== proj.id);
+
+    const updatedProj = { ...proj, featured: nextFeatured };
+    if (nextFeatured) {
+      feat.push(updatedProj);
+    } else {
+      oth.push(updatedProj);
+    }
+
+    const merged = [...feat, ...oth];
+    const updated = merged.map((p, idx) => ({ ...p, displayOrder: idx + 1 }));
+
+    setProjects(updated);
+    showNotification(
+      nextFeatured
+        ? `"${proj.title}" moved to Featured Projects`
+        : `"${proj.title}" moved to Other Projects`
+    );
+
+    let parsedTags: string[] = [];
+    try {
+      parsedTags = JSON.parse(proj.tags);
+    } catch {
+      parsedTags = [proj.tags];
+    }
+
+    await saveProjectAction({
+      id: proj.id,
+      title: proj.title,
+      slug: proj.slug,
+      tagline: proj.tagline,
+      description: proj.description,
+      impactMetric: proj.impactMetric || undefined,
+      tags: parsedTags,
+      featured: nextFeatured,
+      displayOrder: updatedProj.displayOrder,
+      imageUrl: proj.imageUrl || undefined,
+      repoUrl: proj.repoUrl || undefined,
+      liveUrl: proj.liveUrl || undefined,
+    });
+    await reorderItemsAction("projects", updated.map((p) => p.id));
   };
 
   return (
@@ -1484,7 +1557,7 @@ function ProjectsTab({
         <div>
           <h2 className="text-lg font-bold text-white">Project Case Studies</h2>
           <p className="text-xs text-zinc-400 font-mono">
-            Manage projects, architecture write-ups, tags, and impact metrics
+            Featured projects are grouped together at the top, followed by other projects.
           </p>
         </div>
 
@@ -1647,7 +1720,7 @@ function ProjectsTab({
                   checked={featured}
                   onChange={(e) => setFeatured(e.target.checked)}
                 />
-                <span>Featured Project</span>
+                <span>Featured Project (pinned to top)</span>
               </label>
 
               <button
@@ -1661,54 +1734,148 @@ function ProjectsTab({
         </div>
       )}
 
-      {/* Projects List */}
-      <div className="space-y-4">
-        {projects.map((proj, index) => (
-          <div
-            key={proj.id}
-            className="p-5 rounded-xl border border-zinc-800 bg-[#121215] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-          >
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-mono text-zinc-500 font-semibold">
-                  #{index + 1}
-                </span>
-                <h3 className="font-bold text-white text-sm">{proj.title}</h3>
-                {proj.featured && (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                    FEATURED
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-zinc-400 line-clamp-1">{proj.tagline}</p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <OrderControls
-                index={index}
-                total={projects.length}
-                onMoveUp={() => handleMove(index, "up")}
-                onMoveDown={() => handleMove(index, "down")}
-              />
-              <button
-                type="button"
-                onClick={() => startEdit(proj)}
-                className="p-1.5 text-zinc-400 hover:text-white"
-                title="Edit project"
-              >
-                <PencilSimple size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(proj.id)}
-                className="p-1.5 text-zinc-500 hover:text-rose-400"
-                title="Delete project"
-              >
-                <Trash size={16} />
-              </button>
-            </div>
+      {/* Featured Projects Group */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-rose-400">
+              ⭐ Featured Projects ({featuredProjects.length})
+            </span>
+            <span className="text-[10px] font-mono text-zinc-500">
+              — Displayed together first at the top of the portfolio
+            </span>
           </div>
-        ))}
+        </div>
+
+        {featuredProjects.length === 0 ? (
+          <div className="p-5 text-center rounded-xl border border-dashed border-zinc-800 bg-zinc-950/40 text-zinc-500 text-xs font-mono">
+            No featured projects yet. Click &quot;Make Featured&quot; on any project below to group it here.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {featuredProjects.map((proj, index) => (
+              <div
+                key={proj.id}
+                className="p-4 rounded-xl border border-rose-500/25 bg-[#141215] flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:border-rose-500/40"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="text-xs font-mono text-rose-400 font-bold">
+                      #{index + 1}
+                    </span>
+                    <h3 className="font-bold text-white text-sm">{proj.title}</h3>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold">
+                      FEATURED
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 line-clamp-1">{proj.tagline}</p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleFeatured(proj)}
+                    className="text-[11px] font-mono px-2 py-1 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors"
+                    title="Remove from featured"
+                  >
+                    ★ Featured
+                  </button>
+                  <OrderControls
+                    index={index}
+                    total={featuredProjects.length}
+                    onMoveUp={() => handleMoveFeatured(index, "up")}
+                    onMoveDown={() => handleMoveFeatured(index, "down")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => startEdit(proj)}
+                    className="p-1.5 text-zinc-400 hover:text-white"
+                    title="Edit project"
+                  >
+                    <PencilSimple size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(proj.id)}
+                    className="p-1.5 text-zinc-500 hover:text-rose-400"
+                    title="Delete project"
+                  >
+                    <Trash size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Other Projects Group */}
+      <div className="space-y-3 pt-4">
+        <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-400">
+              📁 Other Projects ({otherProjects.length})
+            </span>
+          </div>
+        </div>
+
+        {otherProjects.length === 0 ? (
+          <div className="p-5 text-center rounded-xl border border-dashed border-zinc-800 bg-zinc-950/40 text-zinc-500 text-xs font-mono">
+            No other projects in this section.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {otherProjects.map((proj, index) => (
+              <div
+                key={proj.id}
+                className="p-4 rounded-xl border border-zinc-800 bg-[#121215] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="text-xs font-mono text-zinc-500 font-semibold">
+                      #{index + 1}
+                    </span>
+                    <h3 className="font-bold text-white text-sm">{proj.title}</h3>
+                  </div>
+                  <p className="text-xs text-zinc-400 line-clamp-1">{proj.tagline}</p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleFeatured(proj)}
+                    className="text-[11px] font-mono px-2 py-1 rounded border border-zinc-800 text-zinc-400 hover:text-rose-400 hover:border-rose-500/40 transition-colors"
+                    title="Promote to featured"
+                  >
+                    ☆ Make Featured
+                  </button>
+                  <OrderControls
+                    index={index}
+                    total={otherProjects.length}
+                    onMoveUp={() => handleMoveOther(index, "up")}
+                    onMoveDown={() => handleMoveOther(index, "down")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => startEdit(proj)}
+                    className="p-1.5 text-zinc-400 hover:text-white"
+                    title="Edit project"
+                  >
+                    <PencilSimple size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(proj.id)}
+                    className="p-1.5 text-zinc-500 hover:text-rose-400"
+                    title="Delete project"
+                  >
+                    <Trash size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2107,8 +2274,8 @@ function SkillsTab({
       });
 
       if (res.success) {
-        setSkills((prev) =>
-          prev.map((s) =>
+        setSkills((prev) => {
+          const updated = prev.map((s) =>
             s.id === editingId
               ? {
                   ...s,
@@ -2118,8 +2285,11 @@ function SkillsTab({
                   isHighlighted,
                 }
               : s
-          )
-        );
+          );
+          const h = updated.filter((s) => s.isHighlighted);
+          const o = updated.filter((s) => !s.isHighlighted);
+          return [...h, ...o].map((s, idx) => ({ ...s, displayOrder: idx + 1 }));
+        });
         cancelEdit();
         showNotification("Skill updated successfully");
       }
@@ -2135,17 +2305,24 @@ function SkillsTab({
     });
 
     if (res.success && res.id) {
-      setSkills((prev) => [
-        ...prev,
-        {
-          id: res.id!,
-          name: name.trim(),
-          category,
-          level,
-          isHighlighted,
-          displayOrder: skills.length + 1,
-        },
-      ]);
+      const newSk = {
+        id: res.id!,
+        name: name.trim(),
+        category,
+        level,
+        isHighlighted,
+        displayOrder: skills.length + 1,
+      };
+      setSkills((prev) => {
+        const h = prev.filter((s) => s.isHighlighted);
+        const o = prev.filter((s) => !s.isHighlighted);
+        if (newSk.isHighlighted) {
+          h.push(newSk);
+        } else {
+          o.push(newSk);
+        }
+        return [...h, ...o].map((s, idx) => ({ ...s, displayOrder: idx + 1 }));
+      });
       setName("");
       showNotification("Skill added successfully");
     }
@@ -2159,22 +2336,72 @@ function SkillsTab({
     showNotification("Skill deleted");
   };
 
-  const handleMove = async (index: number, direction: "up" | "down") => {
+  const highlightedSkills = skills.filter((s) => s.isHighlighted);
+  const otherSkills = skills.filter((s) => !s.isHighlighted);
+
+  const handleMoveHighlighted = async (index: number, direction: "up" | "down") => {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= skills.length) return;
+    if (targetIndex < 0 || targetIndex >= highlightedSkills.length) return;
 
-    const newSkills = [...skills];
-    const [moved] = newSkills.splice(index, 1);
-    newSkills.splice(targetIndex, 0, moved);
+    const newHighlighted = [...highlightedSkills];
+    const [moved] = newHighlighted.splice(index, 1);
+    newHighlighted.splice(targetIndex, 0, moved);
 
-    const updatedSkills = newSkills.map((s, idx) => ({
-      ...s,
-      displayOrder: idx + 1,
-    }));
+    const merged = [...newHighlighted, ...otherSkills];
+    const updated = merged.map((s, idx) => ({ ...s, displayOrder: idx + 1 }));
 
-    setSkills(updatedSkills);
+    setSkills(updated);
+    showNotification("Highlighted skills order updated");
+    await reorderItemsAction("skills", updated.map((s) => s.id));
+  };
+
+  const handleMoveOther = async (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= otherSkills.length) return;
+
+    const newOther = [...otherSkills];
+    const [moved] = newOther.splice(index, 1);
+    newOther.splice(targetIndex, 0, moved);
+
+    const merged = [...highlightedSkills, ...newOther];
+    const updated = merged.map((s, idx) => ({ ...s, displayOrder: idx + 1 }));
+
+    setSkills(updated);
     showNotification("Skills order updated");
-    await reorderItemsAction("skills", updatedSkills.map((s) => s.id));
+    await reorderItemsAction("skills", updated.map((s) => s.id));
+  };
+
+  const toggleHighlight = async (sk: Skill) => {
+    const nextHighlight = !sk.isHighlighted;
+    const high = highlightedSkills.filter((s) => s.id !== sk.id);
+    const oth = otherSkills.filter((s) => s.id !== sk.id);
+
+    const updatedSk = { ...sk, isHighlighted: nextHighlight };
+    if (nextHighlight) {
+      high.push(updatedSk);
+    } else {
+      oth.push(updatedSk);
+    }
+
+    const merged = [...high, ...oth];
+    const updated = merged.map((s, idx) => ({ ...s, displayOrder: idx + 1 }));
+
+    setSkills(updated);
+    showNotification(
+      nextHighlight
+        ? `"${sk.name}" marked as highlighted`
+        : `"${sk.name}" unmarked from highlighted`
+    );
+
+    await saveSkillAction({
+      id: sk.id,
+      name: sk.name,
+      category: sk.category,
+      level: sk.level,
+      isHighlighted: nextHighlight,
+      displayOrder: updatedSk.displayOrder,
+    });
+    await reorderItemsAction("skills", updated.map((s) => s.id));
   };
 
   return (
@@ -2182,7 +2409,7 @@ function SkillsTab({
       <div>
         <h2 className="text-lg font-bold text-white">Technical Skills Matrix</h2>
         <p className="text-xs text-zinc-400 font-mono">
-          Categorize technical proficiencies across stacks
+          Highlighted core proficiencies appear together first, followed by remaining skills.
         </p>
       </div>
 
@@ -2243,7 +2470,7 @@ function SkillsTab({
             checked={isHighlighted}
             onChange={(e) => setIsHighlighted(e.target.checked)}
           />
-          <span>Highlight</span>
+          <span>Highlight (Top section)</span>
         </label>
 
         <div className="flex items-center gap-2">
@@ -2265,52 +2492,141 @@ function SkillsTab({
         </div>
       </form>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {skills.map((sk, index) => (
-          <div
-            key={sk.id}
-            className="p-3 rounded-lg border border-zinc-800 bg-[#121215] flex items-center justify-between"
-          >
-            <div>
-              <div className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
-                <span className="text-[10px] font-mono text-zinc-500 font-normal">
-                  #{index + 1}
-                </span>
-                {sk.isHighlighted && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                )}
-                <span>{sk.name}</span>
-              </div>
-              <div className="text-[10px] font-mono text-zinc-400">
-                {sk.category} • {sk.level}
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <OrderControls
-                index={index}
-                total={skills.length}
-                onMoveUp={() => handleMove(index, "up")}
-                onMoveDown={() => handleMove(index, "down")}
-              />
-              <button
-                type="button"
-                onClick={() => startEdit(sk)}
-                className="text-zinc-400 hover:text-white p-1"
-                title="Edit skill"
-              >
-                <PencilSimple size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(sk.id)}
-                className="text-zinc-500 hover:text-rose-400 p-1"
-                title="Delete skill"
-              >
-                <Trash size={14} />
-              </button>
-            </div>
+      {/* Highlighted Skills */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between pb-1 border-b border-zinc-800">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-rose-400">
+            ⭐ Highlighted Core Proficiencies ({highlightedSkills.length})
+          </span>
+        </div>
+
+        {highlightedSkills.length === 0 ? (
+          <div className="p-4 text-center rounded-lg border border-dashed border-zinc-800 bg-zinc-950/40 text-zinc-500 text-xs font-mono">
+            No highlighted skills yet. Check &quot;Highlight&quot; to pin key skills here.
           </div>
-        ))}
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {highlightedSkills.map((sk, index) => (
+              <div
+                key={sk.id}
+                className="p-3 rounded-lg border border-rose-500/25 bg-[#141215] flex items-center justify-between"
+              >
+                <div>
+                  <div className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                    <span className="text-[10px] font-mono text-rose-400 font-bold">
+                      #{index + 1}
+                    </span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                    <span>{sk.name}</span>
+                  </div>
+                  <div className="text-[10px] font-mono text-zinc-400">
+                    {sk.category} • {sk.level}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleHighlight(sk)}
+                    className="p-1 text-[11px] font-mono text-rose-400 hover:text-white"
+                    title="Remove from highlighted"
+                  >
+                    ★
+                  </button>
+                  <OrderControls
+                    index={index}
+                    total={highlightedSkills.length}
+                    onMoveUp={() => handleMoveHighlighted(index, "up")}
+                    onMoveDown={() => handleMoveHighlighted(index, "down")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => startEdit(sk)}
+                    className="text-zinc-400 hover:text-white p-1"
+                    title="Edit skill"
+                  >
+                    <PencilSimple size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(sk.id)}
+                    className="text-zinc-500 hover:text-rose-400 p-1"
+                    title="Delete skill"
+                  >
+                    <Trash size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Other Skills */}
+      <div className="space-y-3 pt-2">
+        <div className="flex items-center justify-between pb-1 border-b border-zinc-800">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-400">
+            ⚡ Other Technical Skills ({otherSkills.length})
+          </span>
+        </div>
+
+        {otherSkills.length === 0 ? (
+          <div className="p-4 text-center rounded-lg border border-dashed border-zinc-800 bg-zinc-950/40 text-zinc-500 text-xs font-mono">
+            No other skills listed.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {otherSkills.map((sk, index) => (
+              <div
+                key={sk.id}
+                className="p-3 rounded-lg border border-zinc-800 bg-[#121215] flex items-center justify-between"
+              >
+                <div>
+                  <div className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                    <span className="text-[10px] font-mono text-zinc-500 font-normal">
+                      #{index + 1}
+                    </span>
+                    <span>{sk.name}</span>
+                  </div>
+                  <div className="text-[10px] font-mono text-zinc-400">
+                    {sk.category} • {sk.level}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleHighlight(sk)}
+                    className="p-1 text-[11px] font-mono text-zinc-500 hover:text-rose-400"
+                    title="Highlight skill"
+                  >
+                    ☆
+                  </button>
+                  <OrderControls
+                    index={index}
+                    total={otherSkills.length}
+                    onMoveUp={() => handleMoveOther(index, "up")}
+                    onMoveDown={() => handleMoveOther(index, "down")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => startEdit(sk)}
+                    className="text-zinc-400 hover:text-white p-1"
+                    title="Edit skill"
+                  >
+                    <PencilSimple size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(sk.id)}
+                    className="text-zinc-500 hover:text-rose-400 p-1"
+                    title="Delete skill"
+                  >
+                    <Trash size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

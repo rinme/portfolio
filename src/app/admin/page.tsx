@@ -30,7 +30,7 @@ export default async function AdminPage() {
   const projects = await db
     .select()
     .from(schema.projects)
-    .orderBy(asc(schema.projects.displayOrder));
+    .orderBy(desc(schema.projects.featured), asc(schema.projects.displayOrder));
   const experiences = await db
     .select()
     .from(schema.experiences)
@@ -38,7 +38,7 @@ export default async function AdminPage() {
   const skills = await db
     .select()
     .from(schema.skills)
-    .orderBy(asc(schema.skills.displayOrder));
+    .orderBy(desc(schema.skills.isHighlighted), asc(schema.skills.displayOrder));
   const testimonials = await db
     .select()
     .from(schema.testimonials)

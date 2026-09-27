@@ -70,6 +70,72 @@ type TabType =
   | "skills"
   | "testimonials";
 
+// Helper to downscale and optimize images client-side before sending to server or saving
+async function optimizeImageFile(file: File, maxDimension = 1400, quality = 0.85): Promise<File> {
+  if (file.type === "image/svg+xml" || file.type === "image/gif") {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const cleanName = file.name.replace(/\.[^/.]+$/, ".jpg");
+            const compressed = new File([blob], cleanName, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            });
+            resolve(compressed);
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export function AdminDashboard({
   initialProfile,
   initialSocials,
@@ -101,22 +167,41 @@ export function AdminDashboard({
     window.location.reload();
   };
 
-  // Upload helper
-  const handleFileUpload = async (file: File): Promise<string | null> => {
-    const formData = new FormData();
-    formData.append("file", file);
+  // Resilient Upload helper with client-side compression and instant fallback
+  const handleFileUpload = async (rawFile: File): Promise<string | null> => {
     try {
+      // 1. Optimize image in the browser (downscales huge camera photos to ~100-200KB)
+      const file = await optimizeImageFile(rawFile);
+
+      // 2. Attempt server upload (/api/upload handles Vercel Blob -> local disk -> Base64)
+      const formData = new FormData();
+      formData.append("file", file);
+
       const res = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
-      const data = await res.json();
-      if (data.url) return data.url;
-      alert(data.error || "Upload failed");
-      return null;
-    } catch {
-      alert("Error uploading file");
-      return null;
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) return data.url;
+      }
+
+      // 3. Fallback: if server returned error, use direct optimized Data URL
+      console.warn("Server upload did not return URL, falling back to embedded image");
+      const fallbackUrl = await readFileAsDataUrl(file);
+      showNotification("Image loaded (embedded)");
+      return fallbackUrl;
+    } catch (err) {
+      console.warn("Upload fetch encountered an error, falling back to embedded image:", err);
+      try {
+        const fallbackUrl = await readFileAsDataUrl(rawFile);
+        showNotification("Image loaded (embedded)");
+        return fallbackUrl;
+      } catch {
+        alert("Failed to read image file");
+        return null;
+      }
     }
   };
 

@@ -19,6 +19,7 @@ import {
   deleteTestimonialAction,
   updateInquiryStatusAction,
   deleteInquiryAction,
+  reorderItemsAction,
 } from "@/app/actions";
 import type {
   Profile,
@@ -49,6 +50,8 @@ import {
   PencilSimple,
   FloppyDisk,
   Warning,
+  ArrowUp,
+  ArrowDown,
 } from "@phosphor-icons/react";
 
 interface AdminDashboardProps {
@@ -463,6 +466,46 @@ export function AdminDashboard({
 }
 
 // -------------------------------------------------------------
+// REUSABLE REORDER CONTROLS COMPONENT
+// -------------------------------------------------------------
+function OrderControls({
+  index,
+  total,
+  onMoveUp,
+  onMoveDown,
+}: {
+  index: number;
+  total: number;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
+  return (
+    <div className="inline-flex items-center gap-0.5 bg-zinc-900 border border-zinc-800 rounded-lg p-0.5 shrink-0">
+      <button
+        type="button"
+        disabled={index === 0}
+        onClick={onMoveUp}
+        className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-zinc-400 transition-colors"
+        title="Move Up"
+        aria-label="Move Up"
+      >
+        <ArrowUp size={14} weight="bold" />
+      </button>
+      <button
+        type="button"
+        disabled={index === total - 1}
+        onClick={onMoveDown}
+        className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-zinc-400 transition-colors"
+        title="Move Down"
+        aria-label="Move Down"
+      >
+        <ArrowDown size={14} weight="bold" />
+      </button>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
 // REUSABLE IMAGE UPLOAD & PREVIEW COMPONENT
 // -------------------------------------------------------------
 function ImageUploadField({
@@ -843,6 +886,24 @@ function SocialsTab({
     showNotification("Social link deleted");
   };
 
+  const handleMove = async (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= socials.length) return;
+
+    const newSocials = [...socials];
+    const [moved] = newSocials.splice(index, 1);
+    newSocials.splice(targetIndex, 0, moved);
+
+    const updatedSocials = newSocials.map((s, idx) => ({
+      ...s,
+      displayOrder: idx + 1,
+    }));
+
+    setSocials(updatedSocials);
+    showNotification("Social links order updated");
+    await reorderItemsAction("socialLinks", updatedSocials.map((s) => s.id));
+  };
+
   const handleAddSocial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
@@ -919,7 +980,7 @@ function SocialsTab({
         </h3>
 
         <div className="space-y-3">
-          {socials.map((soc) => (
+          {socials.map((soc, index) => (
             <div
               key={soc.id}
               className={`p-3.5 rounded-lg border transition-all flex items-center justify-between gap-4 ${
@@ -958,7 +1019,15 @@ function SocialsTab({
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 shrink-0">
+              <div className="flex items-center gap-3 shrink-0">
+                {/* Reorder Up/Down */}
+                <OrderControls
+                  index={index}
+                  total={socials.length}
+                  onMoveUp={() => handleMove(index, "up")}
+                  onMoveDown={() => handleMove(index, "down")}
+                />
+
                 {/* Instant Active Tag Toggle */}
                 <button
                   type="button"
@@ -1391,6 +1460,24 @@ function ProjectsTab({
     showNotification("Project deleted");
   };
 
+  const handleMove = async (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= projects.length) return;
+
+    const newProjects = [...projects];
+    const [moved] = newProjects.splice(index, 1);
+    newProjects.splice(targetIndex, 0, moved);
+
+    const updatedProjects = newProjects.map((p, idx) => ({
+      ...p,
+      displayOrder: idx + 1,
+    }));
+
+    setProjects(updatedProjects);
+    showNotification("Projects order updated");
+    await reorderItemsAction("projects", updatedProjects.map((p) => p.id));
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -1576,13 +1663,16 @@ function ProjectsTab({
 
       {/* Projects List */}
       <div className="space-y-4">
-        {projects.map((proj) => (
+        {projects.map((proj, index) => (
           <div
             key={proj.id}
             className="p-5 rounded-xl border border-zinc-800 bg-[#121215] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
           >
             <div>
               <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-mono text-zinc-500 font-semibold">
+                  #{index + 1}
+                </span>
                 <h3 className="font-bold text-white text-sm">{proj.title}</h3>
                 {proj.featured && (
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20">
@@ -1594,6 +1684,12 @@ function ProjectsTab({
             </div>
 
             <div className="flex items-center gap-2">
+              <OrderControls
+                index={index}
+                total={projects.length}
+                onMoveUp={() => handleMove(index, "up")}
+                onMoveDown={() => handleMove(index, "down")}
+              />
               <button
                 type="button"
                 onClick={() => startEdit(proj)}
@@ -1730,6 +1826,24 @@ function ExperiencesTab({
     await deleteExperienceAction(id);
     if (editingId === id) resetForm();
     showNotification("Experience deleted");
+  };
+
+  const handleMove = async (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= experiences.length) return;
+
+    const newExperiences = [...experiences];
+    const [moved] = newExperiences.splice(index, 1);
+    newExperiences.splice(targetIndex, 0, moved);
+
+    const updatedExperiences = newExperiences.map((e, idx) => ({
+      ...e,
+      displayOrder: idx + 1,
+    }));
+
+    setExperiences(updatedExperiences);
+    showNotification("Experiences order updated");
+    await reorderItemsAction("experiences", updatedExperiences.map((e) => e.id));
   };
 
   return (
@@ -1895,20 +2009,31 @@ function ExperiencesTab({
       )}
 
       <div className="space-y-3">
-        {experiences.map((exp) => (
+        {experiences.map((exp, index) => (
           <div
             key={exp.id}
             className="p-4 rounded-xl border border-zinc-800 bg-[#121215] flex items-center justify-between"
           >
             <div>
-              <h4 className="text-sm font-bold text-white">
-                {exp.role} • <span className="text-rose-400">{exp.company}</span>
-              </h4>
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-xs font-mono text-zinc-500 font-semibold">
+                  #{index + 1}
+                </span>
+                <h4 className="text-sm font-bold text-white">
+                  {exp.role} • <span className="text-rose-400">{exp.company}</span>
+                </h4>
+              </div>
               <p className="text-xs text-zinc-400 font-mono">
                 {exp.startDate} — {exp.endDate} ({exp.location})
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <OrderControls
+                index={index}
+                total={experiences.length}
+                onMoveUp={() => handleMove(index, "up")}
+                onMoveDown={() => handleMove(index, "down")}
+              />
               <button
                 type="button"
                 onClick={() => startEdit(exp)}
@@ -2034,6 +2159,24 @@ function SkillsTab({
     showNotification("Skill deleted");
   };
 
+  const handleMove = async (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= skills.length) return;
+
+    const newSkills = [...skills];
+    const [moved] = newSkills.splice(index, 1);
+    newSkills.splice(targetIndex, 0, moved);
+
+    const updatedSkills = newSkills.map((s, idx) => ({
+      ...s,
+      displayOrder: idx + 1,
+    }));
+
+    setSkills(updatedSkills);
+    showNotification("Skills order updated");
+    await reorderItemsAction("skills", updatedSkills.map((s) => s.id));
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -2123,23 +2266,32 @@ function SkillsTab({
       </form>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {skills.map((sk) => (
+        {skills.map((sk, index) => (
           <div
             key={sk.id}
             className="p-3 rounded-lg border border-zinc-800 bg-[#121215] flex items-center justify-between"
           >
             <div>
-              <div className="text-xs font-mono font-bold text-white flex items-center gap-1">
+              <div className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
+                <span className="text-[10px] font-mono text-zinc-500 font-normal">
+                  #{index + 1}
+                </span>
                 {sk.isHighlighted && (
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
                 )}
-                {sk.name}
+                <span>{sk.name}</span>
               </div>
               <div className="text-[10px] font-mono text-zinc-400">
                 {sk.category} • {sk.level}
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <OrderControls
+                index={index}
+                total={skills.length}
+                onMoveUp={() => handleMove(index, "up")}
+                onMoveDown={() => handleMove(index, "down")}
+              />
               <button
                 type="button"
                 onClick={() => startEdit(sk)}
@@ -2278,6 +2430,24 @@ function TestimonialsTab({
     showNotification("Testimonial deleted");
   };
 
+  const handleMove = async (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= testimonials.length) return;
+
+    const newTestimonials = [...testimonials];
+    const [moved] = newTestimonials.splice(index, 1);
+    newTestimonials.splice(targetIndex, 0, moved);
+
+    const updatedTestimonials = newTestimonials.map((t, idx) => ({
+      ...t,
+      displayOrder: idx + 1,
+    }));
+
+    setTestimonials(updatedTestimonials);
+    showNotification("Testimonials order updated");
+    await reorderItemsAction("testimonials", updatedTestimonials.map((t) => t.id));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -2397,7 +2567,7 @@ function TestimonialsTab({
       </form>
 
       <div className="space-y-3">
-        {testimonials.map((test) => (
+        {testimonials.map((test, index) => (
           <div
             key={test.id}
             className="p-4 rounded-xl border border-zinc-800 bg-[#121215] flex items-start justify-between gap-4"
@@ -2406,12 +2576,21 @@ function TestimonialsTab({
               <p className="text-xs text-zinc-200 italic mb-2">
                 &ldquo;{test.content}&rdquo;
               </p>
-              <div className="text-xs font-mono text-zinc-400">
+              <div className="text-xs font-mono text-zinc-400 flex items-center gap-1.5">
+                <span className="text-zinc-500 font-normal">
+                  #{index + 1} •
+                </span>
                 <span className="font-bold text-white">{test.author}</span> •{" "}
                 {test.role} at <span className="text-rose-400">{test.company}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <OrderControls
+                index={index}
+                total={testimonials.length}
+                onMoveUp={() => handleMove(index, "up")}
+                onMoveDown={() => handleMove(index, "down")}
+              />
               <button
                 type="button"
                 onClick={() => startEdit(test)}

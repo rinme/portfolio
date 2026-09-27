@@ -394,3 +394,62 @@ export async function deleteInquiryAction(id: string) {
   revalidatePath("/admin");
   return { success: true };
 }
+
+export type ReorderableEntity =
+  | "projects"
+  | "experiences"
+  | "skills"
+  | "testimonials"
+  | "socialLinks";
+
+export async function reorderItemsAction(
+  entity: ReorderableEntity,
+  orderedIds: string[]
+) {
+  const isAdmin = await verifyAdminSession();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  await ensureDatabaseInitialized();
+
+  for (let i = 0; i < orderedIds.length; i++) {
+    const id = orderedIds[i];
+    const order = i + 1;
+    switch (entity) {
+      case "projects":
+        await db
+          .update(schema.projects)
+          .set({ displayOrder: order })
+          .where(eq(schema.projects.id, id));
+        break;
+      case "experiences":
+        await db
+          .update(schema.experiences)
+          .set({ displayOrder: order })
+          .where(eq(schema.experiences.id, id));
+        break;
+      case "skills":
+        await db
+          .update(schema.skills)
+          .set({ displayOrder: order })
+          .where(eq(schema.skills.id, id));
+        break;
+      case "testimonials":
+        await db
+          .update(schema.testimonials)
+          .set({ displayOrder: order })
+          .where(eq(schema.testimonials.id, id));
+        break;
+      case "socialLinks":
+        await db
+          .update(schema.socialLinks)
+          .set({ displayOrder: order })
+          .where(eq(schema.socialLinks.id, id));
+        break;
+    }
+  }
+
+  safeRevalidate("/");
+  safeRevalidate("/admin");
+  return { success: true };
+}
+

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { verifyAdminSession } from "@/lib/auth";
 import { db, ensureDatabaseInitialized } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
@@ -6,6 +7,11 @@ import { AdminLogin } from "./AdminLogin";
 import { AdminDashboard } from "./AdminDashboard";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "CRM & CMS Control Plane — Admin",
+  description: "Portfolio CMS and leads pipeline",
+};
 
 export default async function AdminPage() {
   await ensureDatabaseInitialized();

@@ -15,8 +15,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Alex Vance — Senior Full-Stack & Systems Engineer",
-  description: "High-performance software engineer building distributed systems, real-time architectures, and high-craft web applications.",
+  title: {
+    template: "%s",
+    default: "Portfolio",
+  },
+  description: "High-performance software engineering portfolio and back-office CRM.",
 };
 
 export default function RootLayout({

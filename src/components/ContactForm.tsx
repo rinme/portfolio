@@ -129,7 +129,7 @@ export function ContactForm({ email }: ContactProps) {
                         onChange={(e) =>
                           setFormData({ ...formData, name: e.target.value })
                         }
-                        placeholder="Alex Vance"
+                        placeholder="Your name"
                         className="w-full px-3.5 py-2.5 rounded-lg bg-zinc-900/90 border border-zinc-800 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-colors"
                       />
                     </div>

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { db, ensureDatabaseInitialized } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { asc, desc } from "drizzle-orm";
@@ -11,6 +12,23 @@ import { ContactForm } from "@/components/ContactForm";
 import { Footer } from "@/components/Footer";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  await ensureDatabaseInitialized();
+  const [profileData] = await db.select().from(schema.profile).limit(1);
+
+  if (!profileData) {
+    return {
+      title: "Portfolio",
+      description: "Personal Engineering Portfolio",
+    };
+  }
+
+  return {
+    title: `${profileData.name} — ${profileData.role}`,
+    description: profileData.headline || profileData.bio,
+  };
+}
 
 export default async function HomePage() {
   await ensureDatabaseInitialized();
@@ -55,7 +73,7 @@ export default async function HomePage() {
         <ExperienceSection experiences={experiencesData} />
         <CapabilitiesSection skills={skillsData} />
         <TestimonialsSection testimonials={testimonialsData} />
-        <ContactForm email={profileData?.email || "alex@example.dev"} />
+        <ContactForm email={profileData?.email || "contact@example.dev"} />
       </main>
 
       {profileData && <Footer profile={profileData} activeSocials={activeSocials} />}

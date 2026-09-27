@@ -378,6 +378,114 @@ export function AdminDashboard({
 }
 
 // -------------------------------------------------------------
+// REUSABLE IMAGE UPLOAD & PREVIEW COMPONENT
+// -------------------------------------------------------------
+function ImageUploadField({
+  label,
+  value,
+  onChange,
+  onUpload,
+  placeholder = "https://... or click Upload Image",
+}: {
+  label: string;
+  value: string;
+  onChange: (url: string) => void;
+  onUpload: (file: File) => Promise<string | null>;
+  placeholder?: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const url = await onUpload(file);
+    if (url) {
+      onChange(url);
+    }
+    setUploading(false);
+    e.target.value = "";
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="block text-xs font-mono text-zinc-300 font-medium">
+          {label}
+        </label>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-[11px] font-mono text-rose-400 hover:text-rose-300 transition-colors"
+          >
+            Remove Image
+          </button>
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        {/* Preview Thumbnail */}
+        {value ? (
+          <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-zinc-700 bg-zinc-950 shrink-0 shadow-sm">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={value}
+              alt="Preview"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          </div>
+        ) : (
+          <div className="w-14 h-14 rounded-lg border border-dashed border-zinc-800 bg-zinc-950/60 flex flex-col items-center justify-center text-zinc-600 shrink-0">
+            <UploadSimple size={18} />
+            <span className="text-[9px] font-mono mt-0.5">No file</span>
+          </div>
+        )}
+
+        <div className="flex-1 w-full space-y-1.5">
+          <div className="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+            {/* Prominent Upload Button */}
+            <label
+              className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-mono font-medium text-white transition-all cursor-pointer shrink-0 ${
+                uploading
+                  ? "bg-zinc-800 opacity-60 cursor-not-allowed"
+                  : "bg-rose-600 hover:bg-rose-500 active:scale-[0.98] shadow-sm shadow-rose-950/40"
+              }`}
+            >
+              <UploadSimple size={15} weight="bold" className={uploading ? "animate-pulse" : ""} />
+              <span>{uploading ? "Uploading..." : "Upload Image"}</span>
+              <input
+                type="file"
+                accept="image/*"
+                disabled={uploading}
+                onChange={handleFile}
+                className="hidden"
+              />
+            </label>
+
+            {/* Direct URL input */}
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={placeholder}
+              className="flex-1 w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-white font-mono placeholder-zinc-600 focus:outline-none focus:border-rose-500"
+            />
+          </div>
+
+          <p className="text-[10px] font-mono text-zinc-500">
+            Click <span className="text-zinc-300 font-semibold">Upload Image</span> to browse local files, or paste any web URL.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
 // SUB-TAB 1: LEADS / CRM PIPELINE
 // -------------------------------------------------------------
 function LeadsTab({
@@ -928,16 +1036,6 @@ function ProfileTab({
     showNotification("Profile and bio updated successfully");
   };
 
-  const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = await onUpload(file);
-    if (url) {
-      setFormData((prev) => ({ ...prev, avatarUrl: url }));
-      showNotification("Avatar uploaded");
-    }
-  };
-
   return (
     <div className="p-6 rounded-xl border border-zinc-800 bg-[#121215] space-y-6">
       <div>
@@ -1032,33 +1130,15 @@ function ProfileTab({
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-mono text-zinc-400 mb-1.5">
-              Avatar Image URL
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                required
-                value={formData.avatarUrl}
-                onChange={(e) =>
-                  setFormData({ ...formData, avatarUrl: e.target.value })
-                }
-                className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-white font-mono focus:outline-none focus:border-rose-500"
-              />
-              <label className="px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-mono cursor-pointer flex items-center justify-center shrink-0">
-                <UploadSimple size={16} />
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarFile}
-                  className="hidden"
-                />
-              </label>
-            </div>
-          </div>
+        <ImageUploadField
+          label="Avatar / Profile Photo"
+          value={formData.avatarUrl}
+          onChange={(url) => setFormData((prev) => ({ ...prev, avatarUrl: url }))}
+          onUpload={onUpload}
+          placeholder="https://... or click Upload Image"
+        />
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-mono text-zinc-400 mb-1.5">
               Contact Email
@@ -1071,18 +1151,18 @@ function ProfileTab({
               className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-white font-mono focus:outline-none focus:border-rose-500"
             />
           </div>
-        </div>
 
-        <div>
-          <label className="block text-xs font-mono text-zinc-400 mb-1.5">
-            Resume / CV Link (or &quot;#&quot; to hide button)
-          </label>
-          <input
-            type="text"
-            value={formData.resumeUrl || ""}
-            onChange={(e) => setFormData({ ...formData, resumeUrl: e.target.value })}
-            className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-white font-mono focus:outline-none focus:border-rose-500"
-          />
+          <div>
+            <label className="block text-xs font-mono text-zinc-400 mb-1.5">
+              Resume / CV Link (or &quot;#&quot; to hide button)
+            </label>
+            <input
+              type="text"
+              value={formData.resumeUrl || ""}
+              onChange={(e) => setFormData({ ...formData, resumeUrl: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-white font-mono focus:outline-none focus:border-rose-500"
+            />
+          </div>
         </div>
 
         <div className="pt-4 flex justify-end">
@@ -1352,28 +1432,24 @@ function ProjectsTab({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-mono text-zinc-400 mb-1">
-                  Image URL / Upload
-                </label>
-                <input
-                  type="text"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full px-3 py-2 rounded bg-zinc-900 border border-zinc-800 text-xs text-white font-mono"
-                />
-              </div>
+            <ImageUploadField
+              label="Project Cover / Screenshot Image"
+              value={imageUrl}
+              onChange={(url) => setImageUrl(url)}
+              onUpload={onUpload}
+              placeholder="https://... or click Upload Image"
+            />
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-mono text-zinc-400 mb-1">
-                  Live URL
+                  Live Demo URL
                 </label>
                 <input
                   type="url"
                   value={liveUrl}
                   onChange={(e) => setLiveUrl(e.target.value)}
+                  placeholder="https://example.com"
                   className="w-full px-3 py-2 rounded bg-zinc-900 border border-zinc-800 text-xs text-white font-mono"
                 />
               </div>
@@ -1386,6 +1462,7 @@ function ProjectsTab({
                   type="url"
                   value={repoUrl}
                   onChange={(e) => setRepoUrl(e.target.value)}
+                  placeholder="https://github.com/..."
                   className="w-full px-3 py-2 rounded bg-zinc-900 border border-zinc-800 text-xs text-white font-mono"
                 />
               </div>
@@ -2207,18 +2284,13 @@ function TestimonialsTab({
           />
         </div>
 
-        <div>
-          <label className="block text-xs font-mono text-zinc-400 mb-1">
-            Avatar URL (optional)
-          </label>
-          <input
-            type="text"
-            value={avatarUrl}
-            onChange={(e) => setAvatarUrl(e.target.value)}
-            placeholder="https://..."
-            className="w-full px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 text-xs text-white font-mono"
-          />
-        </div>
+        <ImageUploadField
+          label="Author Avatar / Photo (Optional)"
+          value={avatarUrl}
+          onChange={(url) => setAvatarUrl(url)}
+          onUpload={onUpload}
+          placeholder="https://... or click Upload Image"
+        />
 
         <div className="flex justify-end gap-2">
           {editingId && (

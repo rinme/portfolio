@@ -20,7 +20,9 @@
     Buildings,
     CurrencyDollar,
     Eye,
-    EyeSlash
+    EyeSlash,
+    GithubLogo,
+    ArrowsClockwise
   } from 'phosphor-svelte';
   import { enhance } from '$app/forms';
   import { invalidateAll } from '$app/navigation';
@@ -338,6 +340,29 @@
     await apiCall('deleteSkill', { id });
     skills = skills.filter((s) => s.id !== id);
     notify('Skill removed');
+  }
+
+  // --- GitHub Activity Sync ---
+  let githubUsername = $state(
+    initialProfile?.githubUrl ? initialProfile.githubUrl.replace(/^https?:\/\/github\.com\/?/, '') || 'rinme' : 'rinme'
+  );
+  let isSyncingGithub = $state(false);
+
+  async function handleSyncGithub() {
+    if (!githubUsername.trim()) {
+      notify('Please enter a GitHub username', 'error');
+      return;
+    }
+    isSyncingGithub = true;
+    try {
+      const res = await apiCall('syncGithubCapabilities', { username: githubUsername.trim() });
+      skills = res.skills;
+      notify(`Successfully pulled ${res.count} capabilities from @${githubUsername.trim()}`);
+    } catch (err: any) {
+      notify(err.message || 'GitHub sync failed', 'error');
+    } finally {
+      isSyncingGithub = false;
+    }
   }
 
   // --- Testimonials Actions ---
@@ -854,6 +879,52 @@
     <!-- View: Skills CRUD -->
     {#if activeTab === 'skills'}
       <div class="p-8 max-w-4xl space-y-8 overflow-y-auto">
+        <!-- GitHub Activities Automated Sync Panel -->
+        <div class="p-6 rounded border border-[var(--border-subtle)] bg-[var(--surface-card)] space-y-4">
+          <div class="flex items-center justify-between pb-3 hairline-b">
+            <div class="flex items-center gap-2">
+              <GithubLogo size={20} weight="fill" class="text-[var(--text-primary)]" />
+              <span class="text-xs font-mono uppercase font-bold tracking-wider text-[var(--text-primary)]">
+                GitHub Telemetry Sync
+              </span>
+            </div>
+            <span class="text-[11px] font-mono text-[var(--accent)] font-semibold uppercase">
+              Automated Capabilities Generator
+            </span>
+          </div>
+
+          <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
+            Pulls all public repositories for the specified username, analyzes language byte distributions, topics, and recency, and automatically reconstructs the Capabilities Matrix into standard engineering categories.
+          </p>
+
+          <div class="flex flex-col sm:flex-row items-center gap-3 pt-2">
+            <div class="relative w-full sm:w-72">
+              <span class="absolute left-3 top-2.5 text-xs font-mono text-[var(--text-tertiary)]">@</span>
+              <input
+                type="text"
+                bind:value={githubUsername}
+                placeholder="github_username"
+                class="w-full pl-7 pr-3 py-2 text-xs font-mono rounded border border-[var(--border-subtle)] bg-[var(--surface-muted)] focus:outline-none focus:border-[var(--border-strong)]"
+              />
+            </div>
+
+            <button
+              onclick={handleSyncGithub}
+              type="button"
+              disabled={isSyncingGithub}
+              class="w-full sm:w-auto px-4 py-2 text-xs font-mono rounded bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-colors shadow-sm"
+            >
+              {#if isSyncingGithub}
+                <ArrowsClockwise size={14} class="animate-spin" />
+                <span>Analyzing GitHub Activities...</span>
+              {:else}
+                <ArrowsClockwise size={14} />
+                <span>Pull & Sync Capabilities Matrix</span>
+              {/if}
+            </button>
+          </div>
+        </div>
+
         <div class="p-6 rounded border border-[var(--border-subtle)] bg-[var(--surface-card)]">
           <div class="text-xs font-mono uppercase text-[var(--text-tertiary)] mb-4">Add Capability / Skill</div>
           <form onsubmit={addSkill} class="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">

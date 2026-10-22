@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Skill } from '#lib/db/schema';
-  import { Sparkle } from 'phosphor-svelte';
+  import { GithubLogo, Sparkle } from 'phosphor-svelte';
 
   let { skills = [] } = $props<{
     skills: Skill[];
@@ -28,9 +28,10 @@
           Capabilities Matrix
         </h2>
       </div>
-      <p class="text-sm font-mono text-[var(--text-secondary)] mt-4 md:mt-0">
-        [ Engineering Disciplines & Runtime Stacks ]
-      </p>
+      <div class="flex items-center gap-2 text-xs font-mono text-[var(--text-secondary)] mt-4 md:mt-0 px-3 py-1.5 rounded border border-[var(--border-subtle)] bg-[var(--surface-card)]">
+        <GithubLogo size={15} weight="fill" class="text-[var(--text-primary)]" />
+        <span>GitHub Activity Telemetry // {skills.length} Capabilities Verified</span>
+      </div>
     </div>
 
     <!-- Categories Grid -->

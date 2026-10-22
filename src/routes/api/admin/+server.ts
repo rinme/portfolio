@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import * as actions from "#lib/server/actions";
+import { syncGithubCapabilities } from "#lib/server/github";
 
 export const POST: RequestHandler = async ({ request, locals }) => {
   if (!locals.isAdmin) {
@@ -73,6 +74,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       }
       case "reorderItems": {
         const res = await actions.reorderItemsAction(payload.entity, payload.orderedIds);
+        return json(res);
+      }
+      case "syncGithubCapabilities": {
+        const res = await syncGithubCapabilities(payload.username);
         return json(res);
       }
       default:

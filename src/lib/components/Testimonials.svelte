@@ -2,9 +2,9 @@
   import type { Testimonial } from '#lib/db/schema';
   import { Quotes } from 'phosphor-svelte';
 
-  let { testimonials = [] } = $props<{
+  let { testimonials = [] }: {
     testimonials: Testimonial[];
-  }>();
+  } = $props();
 </script>
 
 <section id="testimonials" class="hairline-b py-20 px-6">

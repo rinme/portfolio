@@ -1,4 +1,4 @@
-import type { Handle } from "@sveltejs/kit";
+import type { Handle } from "@sveltejs/kit/hooks";
 import { verifyAdminSession } from "#lib/server/auth";
 import { ensureDatabaseInitialized } from "#lib/db";
 

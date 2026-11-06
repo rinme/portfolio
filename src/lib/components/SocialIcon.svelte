@@ -10,11 +10,11 @@
     Link as LinkIcon
   } from 'phosphor-svelte';
 
-  let { icon = 'link', size = 18, class: className = '' } = $props<{
+  let { icon = 'link', size = 18, class: className = '' }: {
     icon?: string;
     size?: number;
     class?: string;
-  }>();
+  } = $props();
 
   const iconLower = $derived(icon?.toLowerCase() || 'link');
 </script>

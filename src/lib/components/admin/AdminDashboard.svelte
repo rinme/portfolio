@@ -45,7 +45,7 @@
     skills: initialSkills,
     testimonials: initialTestimonials,
     inquiries: initialInquiries
-  } = $props<{
+  }: {
     profile: Profile;
     socialLinks: SocialLink[];
     projects: Project[];
@@ -53,7 +53,7 @@
     skills: Skill[];
     testimonials: Testimonial[];
     inquiries: Inquiry[];
-  }>();
+  } = $props();
 
   type TabType = 'inquiries' | 'profile' | 'socials' | 'projects' | 'experience' | 'skills' | 'testimonials';
   let activeTab = $state<TabType>('inquiries');
@@ -170,6 +170,7 @@
   }
 
   // --- Profile Actions ---
+  // svelte-ignore state_referenced_locally
   let profile = $state<Profile>($state.snapshot(initialProfile));
   $effect(() => {
     profile = $state.snapshot(initialProfile);
@@ -343,6 +344,7 @@
   }
 
   // --- GitHub Activity Sync ---
+  // svelte-ignore state_referenced_locally
   let githubUsername = $state(
     initialProfile?.githubUrl ? initialProfile.githubUrl.replace(/^https?:\/\/github\.com\/?/, '') || 'rinme' : 'rinme'
   );

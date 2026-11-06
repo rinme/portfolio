@@ -49,3 +49,6 @@ local.db
 
 # sveltekit
 /.svelte-kit/
+
+# taste-skill inspect artifacts
+.taste-skill/

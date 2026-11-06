@@ -1,7 +1,7 @@
 <script lang="ts">
   import { EnvelopeSimple, PaperPlaneTilt, CheckCircle, WarningCircle } from 'phosphor-svelte';
 
-  let { email = 'rin@rinme.me' } = $props<{ email?: string }>();
+  let { email = 'rin@rinme.me' }: { email?: string } = $props();
 
   let name = $state('');
   let senderEmail = $state('');
@@ -48,10 +48,10 @@
   }
 </script>
 
-<section id="contact" class="py-20 sm:py-32 border-b border-[var(--border-subtle)]">
+<section id="contact" class="py-20 sm:py-32">
   <div class="max-w-7xl mx-auto px-6">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
-      <div class="lg:col-span-5 space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+      <div class="lg:col-span-5 space-y-6 animate-reveal">
         <h2 class="text-4xl sm:text-6xl font-extrabold font-display tracking-tight text-[var(--text-primary)]">
           Initiate Commission
         </h2>
@@ -60,30 +60,27 @@
         </p>
 
         <div class="pt-4">
-          <div class="text-xs font-mono uppercase tracking-wider text-[var(--text-tertiary)] mb-2 flex items-center gap-1.5">
-            <EnvelopeSimple size={14} class="text-[var(--accent)]" />
-            <span>Direct Mailbox</span>
-          </div>
           <a
             href="mailto:{email}"
-            class="text-2xl sm:text-3xl font-bold font-display text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors underline decoration-[var(--border-subtle)]"
+            class="inline-flex items-center gap-3 text-2xl sm:text-3xl font-bold font-display text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors"
           >
-            {email}
+            <EnvelopeSimple size={28} class="text-[var(--accent)]" />
+            <span>{email}</span>
           </a>
         </div>
       </div>
 
-      <div class="lg:col-span-7">
-        <form onsubmit={handleSubmit} class="p-8 rounded-lg bg-[var(--surface-muted)] border border-[var(--border-subtle)] space-y-5">
+      <div class="lg:col-span-7 animate-reveal" style="animation-delay: 150ms;">
+        <form onsubmit={handleSubmit} class="p-8 sm:p-10 rounded-2xl bg-[var(--surface-muted)] space-y-5">
           {#if status === 'success'}
-            <div class="p-4 rounded bg-[var(--accent-subtle)] border border-[var(--accent)]/40 text-[var(--text-primary)] flex items-center gap-3 text-sm font-mono">
+            <div class="p-4 rounded-xl bg-[var(--accent-subtle)] text-[var(--text-primary)] flex items-center gap-3 text-sm">
               <CheckCircle size={20} class="text-[var(--accent)] shrink-0" />
-              <span>Inquiry received! I will review your message and reply promptly.</span>
+              <span>Inquiry received. I will review your message and reply promptly.</span>
             </div>
           {/if}
 
           {#if status === 'error'}
-            <div class="p-4 rounded bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 flex items-center gap-3 text-sm font-mono">
+            <div class="p-4 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 flex items-center gap-3 text-sm">
               <WarningCircle size={20} class="shrink-0" />
               <span>{errorMessage}</span>
             </div>
@@ -91,35 +88,35 @@
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label for="contact-name" class="block text-xs font-mono text-[var(--text-secondary)] mb-1.5 uppercase">Your Name</label>
+              <label for="contact-name" class="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Your name</label>
               <input
                 id="contact-name"
                 type="text"
                 bind:value={name}
                 required
                 placeholder="Name or Organization"
-                class="w-full px-3.5 py-2.5 rounded bg-[var(--surface-card)] text-sm border border-[var(--border-subtle)] focus:border-[var(--accent)] focus:outline-none transition-colors"
+                class="w-full px-4 py-3 rounded-xl bg-[var(--surface-card)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
               />
             </div>
             <div>
-              <label for="contact-email" class="block text-xs font-mono text-[var(--text-secondary)] mb-1.5 uppercase">Your Email</label>
+              <label for="contact-email" class="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Your email</label>
               <input
                 id="contact-email"
                 type="email"
                 bind:value={senderEmail}
                 required
                 placeholder="email@example.com"
-                class="w-full px-3.5 py-2.5 rounded bg-[var(--surface-card)] text-sm border border-[var(--border-subtle)] focus:border-[var(--accent)] focus:outline-none transition-colors"
+                class="w-full px-4 py-3 rounded-xl bg-[var(--surface-card)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label for="contact-type" class="block text-xs font-mono text-[var(--text-secondary)] mb-1.5 uppercase">Inquiry Type</label>
+            <label for="contact-type" class="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Inquiry type</label>
             <select
               id="contact-type"
               bind:value={commissionType}
-              class="w-full px-3.5 py-2.5 rounded bg-[var(--surface-card)] text-sm border border-[var(--border-subtle)] focus:border-[var(--accent)] focus:outline-none transition-colors"
+              class="w-full px-4 py-3 rounded-xl bg-[var(--surface-card)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
             >
               <option>Full-Stack Web Application</option>
               <option>Edge Architecture & Low-Latency Systems</option>
@@ -129,23 +126,23 @@
           </div>
 
           <div>
-            <label for="contact-message" class="block text-xs font-mono text-[var(--text-secondary)] mb-1.5 uppercase">Project Brief</label>
+            <label for="contact-message" class="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Project brief</label>
             <textarea
               id="contact-message"
               bind:value={message}
               required
               rows={4}
               placeholder="What are the goals, timeline, and scope of your commission?"
-              class="w-full px-3.5 py-2.5 rounded bg-[var(--surface-card)] text-sm border border-[var(--border-subtle)] focus:border-[var(--accent)] focus:outline-none transition-colors"
+              class="w-full px-4 py-3 rounded-xl bg-[var(--surface-card)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
             ></textarea>
           </div>
 
           <button
             type="submit"
             disabled={status === 'submitting'}
-            class="w-full sm:w-auto px-6 py-3 rounded bg-[var(--accent)] text-white font-mono text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+            class="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
           >
-            <PaperPlaneTilt size={14} />
+            <PaperPlaneTilt size={16} />
             <span>{status === 'submitting' ? 'Transmitting Ingest...' : 'Send Commission Brief'}</span>
           </button>
         </form>

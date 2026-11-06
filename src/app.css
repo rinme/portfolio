@@ -2,19 +2,19 @@
 
 @layer base {
   :root {
-    --bg-canvas: #fafaf9;
+    --bg-canvas: #fafafa;
     --text-primary: #111215;
     --text-secondary: #4b525d;
-    --text-tertiary: #7e8794;
-    --border-subtle: #e5e7eb;
+    --text-tertiary: #59616e;
+    --border-subtle: transparent;
     --border-strong: #111215;
     --surface-card: #ffffff;
     --surface-muted: #f2f3f5;
     
-    /* Editorial Pastel Pink */
-    --accent: #f48ba9;
-    --accent-hover: #e07292;
-    --accent-subtle: rgba(244, 139, 169, 0.12);
+    /* Editorial Deep Rose / Pastel Pink for AA Contrast */
+    --accent: #b8336a;
+    --accent-hover: #9c2759;
+    --accent-subtle: rgba(184, 51, 106, 0.08);
     --accent-solid-text: #ffffff;
   }
 
@@ -22,8 +22,8 @@
     --bg-canvas: #0b0c0e;
     --text-primary: #f4f5f7;
     --text-secondary: #9da3b0;
-    --text-tertiary: #636b79;
-    --border-subtle: #22262e;
+    --text-tertiary: #838b99;
+    --border-subtle: transparent;
     --border-strong: #f4f5f7;
     --surface-card: #121418;
     --surface-muted: #181b20;
@@ -33,6 +33,10 @@
     --accent-hover: #ff94b4;
     --accent-subtle: rgba(255, 174, 200, 0.15);
     --accent-solid-text: #111215;
+  }
+
+  html {
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -48,8 +52,12 @@
     letter-spacing: -0.035em;
   }
 
+  p {
+    max-width: 65ch;
+  }
+
   code, pre, .font-mono {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
   }
 }
 
@@ -58,4 +66,27 @@
   font-family: 'Space Grotesk', sans-serif;
   letter-spacing: -0.055em;
   line-height: 0.85;
+}
+
+@keyframes enterUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-reveal {
+  animation: enterUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

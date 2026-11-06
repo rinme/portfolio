@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { Profile, SocialLink } from '#lib/db/schema';
-  import { ArrowUpRight, MapPin, EnvelopeSimple, FileText } from 'phosphor-svelte';
+  import { ArrowUpRight, EnvelopeSimple, MapPin } from 'phosphor-svelte';
   import SocialIcon from './SocialIcon.svelte';
+  import LatencyProbe from './LatencyProbe.svelte';
 
   let { profile, activeSocials = [] } = $props<{
     profile: Profile;
@@ -9,121 +10,81 @@
   }>();
 </script>
 
-<section class="hairline-b relative overflow-hidden">
-  <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 min-h-[580px]">
-    <!-- Left Column: Typography & Intent (8 cols) -->
-    <div class="lg:col-span-8 p-8 sm:p-12 lg:p-16 flex flex-col justify-between lg:hairline-r">
-      <div>
-        <!-- Section Marker -->
-        <div class="flex items-center gap-3 text-xs font-mono uppercase tracking-widest text-[var(--text-tertiary)] mb-8">
-          <span class="w-2 h-2 bg-[var(--accent)]"></span>
-          <span>Index // 00 &mdash; Profile & Intent</span>
-        </div>
-
-        <!-- Headline & Role -->
-        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold font-display leading-[1.05] tracking-tight mb-8">
-          {profile.headline || profile.role}
+<section class="relative pt-12 sm:pt-20 pb-16 sm:pb-24 overflow-hidden border-b border-[var(--border-subtle)]">
+  <div class="max-w-7xl mx-auto px-6">
+    <!-- Top Narrative Asymmetric Split -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mb-12 sm:mb-20">
+      <div class="lg:col-span-5">
+        <h1 class="text-6xl sm:text-8xl lg:text-9xl font-extrabold font-display leading-none tracking-tight text-[var(--text-primary)]">
+          {profile.headline || 'yo'}
         </h1>
-
-        <!-- Narrative Bio -->
-        <p class="text-lg sm:text-xl text-[var(--text-secondary)] font-normal max-w-2xl leading-relaxed mb-10">
-          {profile.bio}
-        </p>
+        <div class="flex items-center gap-3 text-xs font-mono text-[var(--text-secondary)] mt-4">
+          <span class="w-2 h-2 rounded-full bg-[var(--accent)]"></span>
+          <span>{profile.role}</span>
+          <span>•</span>
+          <span class="flex items-center gap-1"><MapPin size={13} /> {profile.location}</span>
+        </div>
       </div>
 
-      <!-- Bottom Meta Strip & CTAs -->
-      <div class="pt-8 hairline-t flex flex-wrap items-center justify-between gap-6">
-        <div class="flex flex-wrap items-center gap-6 text-sm font-mono text-[var(--text-secondary)]">
-          <div class="flex items-center gap-2">
-            <MapPin size={16} class="text-[var(--accent)]" />
-            <span>{profile.location}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <EnvelopeSimple size={16} />
-            <a href="mailto:{profile.email}" class="hover:text-[var(--text-primary)] underline decoration-[var(--border-subtle)]">
-              {profile.email}
-            </a>
-          </div>
-        </div>
+      <div class="lg:col-span-7 lg:pl-8 space-y-6">
+        <p class="text-lg sm:text-2xl text-[var(--text-primary)] font-normal leading-relaxed max-w-2xl">
+          {profile.bio}
+        </p>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-4 text-xs font-mono">
           <a
-            href="#contact"
-            class="px-5 py-2.5 text-sm font-medium rounded bg-[var(--accent)] text-white hover:opacity-95 transition-all shadow-sm"
+            href="mailto:{profile.email}"
+            class="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-[var(--surface-muted)] text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors border border-[var(--border-subtle)]"
           >
-            Initiate Contact
+            <EnvelopeSimple size={14} class="text-[var(--accent)]" />
+            <span>{profile.email}</span>
           </a>
-          {#if profile.resumeUrl}
+
+          {#each activeSocials as social}
             <a
-              href={profile.resumeUrl}
+              href={social.url}
               target="_blank"
               rel="noopener noreferrer"
-              class="px-4 py-2.5 text-sm font-mono flex items-center gap-2 rounded border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition-colors"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[var(--surface-muted)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors border border-[var(--border-subtle)]"
             >
-              <FileText size={16} />
-              <span>Resume</span>
+              <SocialIcon icon={social.icon} size={13} />
+              <span>{social.platform}</span>
+              <ArrowUpRight size={11} class="opacity-60" />
             </a>
-          {/if}
+          {/each}
         </div>
       </div>
     </div>
 
-    <!-- Right Column: Visual Specimen & Meta (4 cols) -->
-    <div class="lg:col-span-4 p-8 sm:p-12 flex flex-col justify-between bg-[var(--surface-muted)]/50">
-      <!-- Avatar & Specimen Box -->
-      <div class="space-y-6">
-        <div class="aspect-square w-full max-w-[280px] mx-auto rounded border border-[var(--border-subtle)] overflow-hidden bg-[var(--surface-card)] p-2">
+    <!-- The Monument Baseline -->
+    <div class="py-6 sm:py-10 border-y border-[var(--border-subtle)] my-8 sm:my-14 overflow-hidden select-none">
+      <div class="monument-text font-extrabold text-[15vw] sm:text-[17vw] tracking-tighter text-[var(--text-primary)] text-center leading-[0.8] uppercase pointer-events-none">
+        {profile.name}
+      </div>
+    </div>
+
+    <!-- Bottom Stage: Profile Specimen & Live Edge Latency Probe -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-4">
+      <div class="lg:col-span-4 flex items-center gap-5 p-4 rounded bg-[var(--surface-muted)] border border-[var(--border-subtle)]">
+        <div class="w-20 h-20 sm:w-24 sm:h-24 rounded overflow-hidden shrink-0 bg-[var(--surface-card)] border border-[var(--border-subtle)]">
           <img
-            src={profile.avatarUrl || '/uploads/default-avatar.png'}
+            src={profile.avatarUrl}
             alt={profile.name}
-            class="w-full h-full object-cover grayscale contrast-125 hover:grayscale-0 transition-all duration-300 rounded-sm"
+            class="w-full h-full object-cover grayscale contrast-125 hover:grayscale-0 transition-all duration-300"
           />
         </div>
-
-        <div class="space-y-3 font-mono text-xs">
-          <div class="flex justify-between py-2 hairline-b text-[var(--text-secondary)]">
-            <span>DISCIPLINE</span>
-            <span class="font-bold text-[var(--text-primary)]">{profile.role}</span>
-          </div>
-          <div class="flex justify-between py-2 hairline-b text-[var(--text-secondary)]">
-            <span>DEPLOYMENT STATUS</span>
-            <span class="text-[var(--accent)] font-semibold uppercase">{profile.availabilityStatus}</span>
-          </div>
-          <div class="flex justify-between py-2 hairline-b text-[var(--text-secondary)]">
-            <span>PRIMARY REPO</span>
-            {#if profile.githubUrl}
-              <a href={profile.githubUrl} target="_blank" rel="noopener noreferrer" class="hover:text-[var(--accent)] flex items-center gap-1">
-                GitHub <ArrowUpRight size={12} />
-              </a>
-            {:else}
-              <span>PRIVATE</span>
-            {/if}
+        <div class="text-xs space-y-1.5">
+          <div class="font-mono text-[var(--text-tertiary)] uppercase text-[10px]">OPERATING DISCIPLINE</div>
+          <div class="font-bold text-sm text-[var(--text-primary)]">{profile.role}</div>
+          <div class="text-[var(--text-secondary)] font-mono text-[11px] leading-tight">
+            5+ Years Autonomous Coding • Systems Sympathy
           </div>
         </div>
       </div>
 
-      <!-- Active Social Network Channels -->
-      {#if activeSocials.length > 0}
-        <div class="pt-6 hairline-t mt-6">
-          <div class="text-[11px] font-mono uppercase tracking-wider text-[var(--text-tertiary)] mb-3">
-            Connected Channels ({activeSocials.length})
-          </div>
-          <div class="flex flex-wrap gap-2">
-            {#each activeSocials as social}
-              <a
-                href={social.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="flex items-center gap-2 px-3 py-1.5 rounded border border-[var(--border-subtle)] bg-[var(--surface-card)] text-xs font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all"
-              >
-                <SocialIcon icon={social.icon} size={14} />
-                <span>{social.platform}</span>
-                <ArrowUpRight size={12} class="opacity-50" />
-              </a>
-            {/each}
-          </div>
-        </div>
-      {/if}
+      <div class="lg:col-span-8">
+        <LatencyProbe />
+      </div>
     </div>
   </div>
 </section>

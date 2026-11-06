@@ -74,16 +74,28 @@ export const testimonials = sqliteTable("testimonials", {
 });
 
 export const inquiries = sqliteTable("inquiries", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => `inq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`),
   name: text("name").notNull(),
   email: text("email").notNull(),
   company: text("company"),
-  subject: text("subject").notNull(),
+  subject: text("subject").notNull().default("Commission Inquiry"),
   message: text("message").notNull(),
   budget: text("budget"),
   status: text("status").notNull().default("NEW"), // 'NEW' | 'IN_REVIEW' | 'CONTACTED' | 'CLOSED' | 'ARCHIVED'
   internalNotes: text("internal_notes"),
   createdAt: integer("created_at").notNull(),
+});
+
+export const leads = sqliteTable("leads", {
+  id: text("id").primaryKey().$defaultFn(() => `lead-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  company: text("company"),
+  budget: text("budget"),
+  message: text("message").notNull(),
+  status: text("status").notNull().default("NEW"),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
 });
 
 export type Profile = typeof profile.$inferSelect;
@@ -106,3 +118,8 @@ export type InsertTestimonial = typeof testimonials.$inferInsert;
 
 export type Inquiry = typeof inquiries.$inferSelect;
 export type InsertInquiry = typeof inquiries.$inferInsert;
+
+export type Lead = typeof leads.$inferSelect;
+export type InsertLead = typeof leads.$inferInsert;
+
+export { eq } from "drizzle-orm";

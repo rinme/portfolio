@@ -126,6 +126,20 @@ export async function ensureDatabaseInitialized() {
     );
   `);
 
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS leads (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      company TEXT,
+      budget TEXT,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'NEW',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  `);
+
   // Check if profile exists and matches Rinme; if not, seed or refresh initial data
   const existingProfile = await db.select().from(schema.profile).limit(1);
   if (existingProfile.length === 0 || existingProfile[0]?.name !== "Rinme") {

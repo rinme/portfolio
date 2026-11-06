@@ -7,29 +7,47 @@ export async function submitContactInquiry(formData: {
   name: string;
   email: string;
   company?: string;
-  subject: string;
+  subject?: string;
   message: string;
   budget?: string;
 }) {
   await ensureDatabaseInitialized();
 
-  if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+  const subject = (formData.subject || formData.company || "Commission Inquiry").trim();
+
+  if (!formData.name || !formData.email || !formData.message) {
     return { success: false, error: "Please fill in all required fields." };
   }
 
-  const id = `inq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const now = Date.now();
+  const inqId = `inq-${now}-${Math.random().toString(36).substring(2, 7)}`;
   await db.insert(schema.inquiries).values({
-    id,
+    id: inqId,
     name: formData.name.trim(),
     email: formData.email.trim(),
     company: formData.company?.trim() || null,
-    subject: formData.subject.trim(),
+    subject,
     message: formData.message.trim(),
     budget: formData.budget || null,
     status: "NEW",
     internalNotes: null,
-    createdAt: Date.now(),
+    createdAt: now,
   });
+
+  try {
+    await db.insert(schema.leads).values({
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      company: formData.company?.trim() || null,
+      budget: formData.budget || null,
+      message: formData.message.trim(),
+      status: "NEW",
+      createdAt: now,
+      updatedAt: now,
+    });
+  } catch (leadErr) {
+    console.warn("Failed to sync lead record:", leadErr);
+  }
 
   return { success: true };
 }

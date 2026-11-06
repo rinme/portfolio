@@ -1,73 +1,69 @@
 <script lang="ts">
   import type { Skill } from '#lib/db/schema';
-  import { GithubLogo, Sparkle } from 'phosphor-svelte';
+  import { Cpu, Globe, Database, Wrench } from 'phosphor-svelte';
 
-  let { skills = [] } = $props<{
-    skills: Skill[];
-  }>();
+  let { skills = [] } = $props<{ skills: Skill[] }>();
 
-  const grouped = $derived(
-    skills.reduce<Record<string, Skill[]>>((acc, skill) => {
-      acc[skill.category] = acc[skill.category] || [];
-      acc[skill.category].push(skill);
-      return acc;
-    }, {})
-  );
+  const categories = [
+    { name: 'Frontend & Interfaces', icon: Globe },
+    { name: 'Systems & Backend', icon: Cpu },
+    { name: 'Storage, Edge & DevOps', icon: Database },
+    { name: 'Protocols & Tools', icon: Wrench },
+  ];
+
+  function getSkillsByCategory(category: string) {
+    const key = category.toLowerCase().replace(/[^a-z0-9]/g, ' ');
+    const firstWord = key.split(/\s+/)[0];
+    return skills.filter(s => {
+      const cat = s.category.toLowerCase();
+      if (cat === category.toLowerCase()) return true;
+      if (firstWord === 'storage' && (cat.includes('storage') || cat.includes('devops') || cat.includes('database'))) return true;
+      if (firstWord === 'frontend' && (cat.includes('frontend') || cat.includes('ui') || cat.includes('interface'))) return true;
+      if (firstWord === 'systems' && (cat.includes('system') || cat.includes('backend'))) return true;
+      if (firstWord === 'protocols' && (cat.includes('protocol') || cat.includes('tool'))) return true;
+      return cat.includes(firstWord);
+    });
+  }
 </script>
 
-<section id="skills" class="hairline-b py-20 px-6 bg-[var(--surface-muted)]/30">
-  <div class="max-w-7xl mx-auto">
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-end justify-between mb-16 hairline-b pb-8">
-      <div>
-        <div class="flex items-center gap-3 text-xs font-mono uppercase tracking-widest text-[var(--text-tertiary)] mb-3">
-          <span class="w-2 h-2 bg-[var(--accent)]"></span>
-          <span>Section // 03</span>
-        </div>
-        <h2 class="text-3xl sm:text-5xl font-bold font-display tracking-tight">
-          Capabilities Matrix
-        </h2>
-      </div>
-      <div class="flex items-center gap-2 text-xs font-mono text-[var(--text-secondary)] mt-4 md:mt-0 px-3 py-1.5 rounded border border-[var(--border-subtle)] bg-[var(--surface-card)]">
-        <GithubLogo size={15} weight="fill" class="text-[var(--text-primary)]" />
-        <span>GitHub Activity Telemetry // {skills.length} Capabilities Verified</span>
-      </div>
+<section id="capabilities" class="py-20 sm:py-32 border-b border-[var(--border-subtle)]">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="max-w-2xl mb-16">
+      <h2 class="text-4xl sm:text-6xl font-extrabold font-display tracking-tight text-[var(--text-primary)]">
+        Technical Capabilities
+      </h2>
+      <p class="text-base sm:text-lg text-[var(--text-secondary)] mt-3">
+        Disciplines, runtime engines, and core protocols practiced and deployed over 5+ years of autonomous coding.
+      </p>
     </div>
 
-    <!-- Categories Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {#each Object.entries(grouped) as [category, items], idx}
-        <div class="rounded border border-[var(--border-subtle)] bg-[var(--surface-card)] p-6 sm:p-8 flex flex-col justify-between">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {#each categories as category}
+        {@const groupSkills = getSkillsByCategory(category.name)}
+        <div class="p-6 rounded-lg bg-[var(--surface-muted)] border border-[var(--border-subtle)] flex flex-col justify-between">
           <div>
-            <div class="flex items-center justify-between text-xs font-mono text-[var(--text-tertiary)] mb-4 pb-3 hairline-b">
-              <span>{category.toUpperCase()}</span>
-              <span>{(idx + 1).toString().padStart(2, '0')}</span>
+            <div class="flex items-center gap-2.5 text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] mb-6">
+              <category.icon size={16} class="text-[var(--accent)]" />
+              <span>{category.name}</span>
             </div>
 
             <div class="space-y-3">
-              {#each items as item}
-                <div class="flex items-center justify-between py-1.5 text-sm">
+              {#each groupSkills as skill}
+                <div class="flex items-center justify-between text-xs py-1.5 border-b border-[var(--border-subtle)]/60">
                   <div class="flex items-center gap-2">
-                    {#if item.isHighlighted}
-                      <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" title="Core Specialty"></span>
-                    {:else}
-                      <span class="w-1.5 h-1.5 rounded-full bg-[var(--border-subtle)]"></span>
+                    {#if skill.isHighlighted}
+                      <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" title="Highlighted Skill"></span>
                     {/if}
-                    <span class="font-medium {item.isHighlighted ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-secondary)]'}">
-                      {item.name}
-                    </span>
+                    <span class="font-medium text-[var(--text-primary)]">{skill.name}</span>
                   </div>
-                  <span class="text-xs font-mono text-[var(--text-tertiary)] px-2 py-0.5 rounded bg-[var(--surface-muted)]">
-                    {item.level}
-                  </span>
+                  <span class="font-mono text-[10px] text-[var(--text-tertiary)]">{skill.level}</span>
                 </div>
               {/each}
             </div>
           </div>
 
-          <div class="pt-6 mt-6 hairline-t text-[11px] font-mono text-[var(--text-tertiary)] flex justify-between">
-            <span>INDEX SIZE</span>
-            <span>{items.length} TECHNOLOGIES</span>
+          <div class="mt-6 pt-4 border-t border-[var(--border-subtle)] text-[10px] font-mono text-[var(--text-tertiary)]">
+            {groupSkills.length} Verified Modules
           </div>
         </div>
       {/each}

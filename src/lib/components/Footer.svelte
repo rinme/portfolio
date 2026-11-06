@@ -1,52 +1,50 @@
 <script lang="ts">
   import type { Profile, SocialLink } from '#lib/db/schema';
-  import { ArrowUp } from 'phosphor-svelte';
+  import { ArrowUpRight } from 'phosphor-svelte';
   import SocialIcon from './SocialIcon.svelte';
 
   let { profile, activeSocials = [] } = $props<{
     profile: Profile;
     activeSocials: SocialLink[];
   }>();
-
-  const currentYear = new Date().getFullYear();
-
-  function scrollToTop() {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
 </script>
 
-<footer class="py-12 px-6 hairline-t bg-[var(--surface-muted)]/50">
-  <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-    <div class="text-xs font-mono text-[var(--text-secondary)] space-y-1 text-center sm:text-left">
-      <div class="font-bold text-[var(--text-primary)]">
-        {profile.name} &mdash; {profile.role}
-      </div>
+<footer class="py-16 sm:py-24 bg-[var(--surface-muted)] text-[var(--text-primary)]">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
       <div>
-        Designed under Swiss Editorial Principles. © {currentYear} All rights reserved.
+        <div class="text-xs font-mono uppercase tracking-wider text-[var(--text-tertiary)] mb-2">ENGINEERING PORTFOLIO</div>
+        <div class="text-2xl sm:text-4xl font-extrabold font-display">{profile.name}</div>
+        <div class="text-xs font-mono text-[var(--text-secondary)] mt-1">Bangkok, Thailand • UTC+7</div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-4 text-xs font-mono">
+        {#each activeSocials as social}
+          <a
+            href={social.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center gap-1 hover:text-[var(--accent)] transition-colors"
+          >
+            <SocialIcon icon={social.icon} size={14} />
+            <span>{social.platform}</span>
+            <ArrowUpRight size={10} class="opacity-60" />
+          </a>
+        {/each}
+        <a href="/admin" class="hover:text-[var(--accent)] transition-colors text-[var(--text-tertiary)]">
+          [Control Plane]
+        </a>
       </div>
     </div>
 
-    <div class="flex items-center gap-4">
-      {#each activeSocials as social}
-        <a
-          href={social.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition-colors"
-          title={social.platform}
-        >
-          <SocialIcon icon={social.icon} size={15} />
-        </a>
-      {/each}
+    <!-- Designed Close Monument -->
+    <div class="monument-text font-extrabold text-[12vw] sm:text-[14vw] tracking-tighter text-[var(--text-primary)]/10 text-center select-none uppercase pointer-events-none">
+      {profile.name}
+    </div>
 
-      <button
-        onclick={scrollToTop}
-        type="button"
-        class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-      >
-        <span>Top</span>
-        <ArrowUp size={12} />
-      </button>
+    <div class="pt-8 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-[var(--text-tertiary)]">
+      <div>© {new Date().getFullYear()} Rinme. All rights reserved.</div>
+      <div>Built with SvelteKit 2, Bun, Tailwind CSS v4, and LibSQL.</div>
     </div>
   </div>
 </footer>

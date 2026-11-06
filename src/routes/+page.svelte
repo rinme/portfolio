@@ -3,9 +3,8 @@
   import Navbar from '#lib/components/Navbar.svelte';
   import Hero from '#lib/components/Hero.svelte';
   import Projects from '#lib/components/Projects.svelte';
-  import Experience from '#lib/components/Experience.svelte';
   import Capabilities from '#lib/components/Capabilities.svelte';
-  import Testimonials from '#lib/components/Testimonials.svelte';
+  import Experience from '#lib/components/Experience.svelte';
   import ContactForm from '#lib/components/ContactForm.svelte';
   import Footer from '#lib/components/Footer.svelte';
 
@@ -13,14 +12,14 @@
 </script>
 
 <svelte:head>
-  <title>{data.profile ? `${data.profile.name} — ${data.profile.role}` : 'Engineering Portfolio'}</title>
-  <meta name="description" content={data.profile?.headline || data.profile?.bio || 'Personal Engineering Portfolio'} />
+  <title>{data.profile ? `${data.profile.name} — ${data.profile.role}` : 'Rinme — Self-Taught Full-Stack Engineer'}</title>
+  <meta name="description" content="Self-taught full-stack engineer in Bangkok, TH focusing on low-latency web applications and edge tools." />
 </svelte:head>
 
 <div class="min-h-screen flex flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)] transition-colors duration-200">
   <Navbar
-    name={data.profile?.name || 'Portfolio'}
-    availabilityStatus={data.profile?.availabilityStatus || 'Available'}
+    name={data.profile?.name || 'Rinme'}
+    availabilityStatus={data.profile?.availabilityStatus || 'Open for full-stack commission.'}
     activeSocials={data.activeSocials}
   />
 
@@ -30,10 +29,9 @@
     {/if}
 
     <Projects projects={data.projects} />
-    <Experience experiences={data.experiences} />
     <Capabilities skills={data.skills} />
-    <Testimonials testimonials={data.testimonials} />
-    <ContactForm email={data.profile?.email || 'contact@example.dev'} />
+    <Experience experiences={data.experiences} />
+    <ContactForm email={data.profile?.email || 'rin@rinme.me'} />
   </main>
 
   {#if data.profile}

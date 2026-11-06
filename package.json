@@ -38,6 +38,7 @@
   "packageManager": "bun@1.3.14",
   "imports": {
     "#lib": "./src/lib/index.ts",
+    "#lib/db": "./src/lib/db/index.ts",
     "#lib/*": "./src/lib/*"
   },
   "ignoreScripts": [

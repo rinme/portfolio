@@ -126,9 +126,18 @@ export async function ensureDatabaseInitialized() {
     );
   `);
 
-  // Check if profile exists; if not, seed initial data
+  // Check if profile exists and matches Rinme; if not, seed or refresh initial data
   const existingProfile = await db.select().from(schema.profile).limit(1);
-  if (existingProfile.length === 0) {
+  if (existingProfile.length === 0 || existingProfile[0]?.name !== "Rinme") {
+    if (existingProfile.length > 0) {
+      await db.delete(schema.profile);
+      await db.delete(schema.socialLinks);
+      await db.delete(schema.projects);
+      await db.delete(schema.experiences);
+      await db.delete(schema.skills);
+      await db.delete(schema.testimonials);
+    }
+
     await db.insert(schema.profile).values(initialProfile);
 
     for (const item of initialSocialLinks) {

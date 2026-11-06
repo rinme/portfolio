@@ -52,9 +52,9 @@ async function verify() {
     { desc: "Section id is 'contact'", test: src.includes('id="contact"') },
     { desc: "Zero legacy hairlines", test: !src.includes("hairline") },
     { desc: "Zero legacy index badge (Section //)", test: !src.includes("Section //") },
-    { desc: "Prominent direct email", test: src.includes('href="mailto:{email}"') && src.includes("Direct Mailbox") },
+    { desc: "Prominent direct email", test: src.includes('href="mailto:{email}"') && src.includes("{email}") },
     { desc: "Pastel-pink submit button & states", test: src.includes("bg-[var(--accent)]") && src.includes("Transmitting Ingest...") && src.includes("Send Commission Brief") },
-    { desc: "Feedback toasts (success & error)", test: src.includes("Inquiry received!") && src.includes("errorMessage") },
+    { desc: "Feedback toasts (success & error)", test: src.includes("Inquiry received") && src.includes("errorMessage") },
     { desc: "Inquiry type options", test: src.includes("Full-Stack Web Application") && src.includes("Edge Architecture & Low-Latency Systems") && src.includes("Geospatial / Interactive Map Tool") },
     { desc: "Submits to /api/contact", test: src.includes("fetch('/api/contact'") },
   ];

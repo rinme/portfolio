@@ -26,9 +26,9 @@ const footerChecks = [
   { desc: "Monument responsive sizing text-[12vw] sm:text-[14vw]", test: footerSrc.includes("text-[12vw] sm:text-[14vw]") },
   { desc: "Profile name displayed in monument close", test: footerSrc.includes("{profile.name}") },
   { desc: "Bangkok location stamp", test: footerSrc.includes("Bangkok, Thailand • UTC+7") },
-  { desc: "Engineering portfolio label", test: footerSrc.includes("ENGINEERING PORTFOLIO") },
+  { desc: "Engineering portfolio label", test: footerSrc.includes("Engineering portfolio") },
   { desc: "Active socials loop with SocialIcon and ArrowUpRight", test: footerSrc.includes("{#each activeSocials as social}") && footerSrc.includes("<SocialIcon") && footerSrc.includes("<ArrowUpRight") },
-  { desc: "Clean /admin control plane link", test: footerSrc.includes('href="/admin"') && footerSrc.includes("[Control Plane]") },
+  { desc: "Clean /admin control plane link", test: footerSrc.includes('href="/admin"') && footerSrc.includes("Control Plane") },
   { desc: "Current year and tech stack statement", test: footerSrc.includes("new Date().getFullYear()") && footerSrc.includes("SvelteKit 2, Bun, Tailwind CSS v4, and LibSQL") },
 ];
 

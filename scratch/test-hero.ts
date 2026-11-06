@@ -24,7 +24,7 @@ const checks = [
   { desc: "Active socials loop with SocialIcon", test: src.includes("{#each activeSocials as social}") && src.includes("<SocialIcon") },
   { desc: "Zero hairlines", test: !src.includes("hairline") },
   { desc: "Zero legacy index badge (Index //)", test: !src.includes("Index //") },
-  { desc: "Border subtle divider (border-b border-[var(--border-subtle)])", test: src.includes("border-b border-[var(--border-subtle)]") },
+  { desc: "Borderless surface layers (bg-[var(--surface-muted)])", test: src.includes("bg-[var(--surface-muted)]") },
 ];
 
 let failed = false;

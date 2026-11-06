@@ -9,6 +9,7 @@
     flag: string;
     endpoint: string;
     latency: number | null;
+    status: 'idle' | 'measuring' | 'success' | 'fallback';
   }
 
   let clusters = $state<Cluster[]>([
@@ -19,6 +20,7 @@
       flag: '🇸🇬',
       endpoint: 'https://1.1.1.1/cdn-cgi/trace',
       latency: null,
+      status: 'idle',
     },
     {
       id: 'nrt',
@@ -27,6 +29,7 @@
       flag: '🇯🇵',
       endpoint: 'https://1.0.0.1/cdn-cgi/trace',
       latency: null,
+      status: 'idle',
     },
     {
       id: 'sfo',
@@ -35,23 +38,31 @@
       flag: '🇺🇸',
       endpoint: 'https://cloudflare-dns.com/cdn-cgi/trace',
       latency: null,
+      status: 'idle',
     },
   ]);
 
   let isMeasuring = $state(false);
 
   async function pingCluster(cluster: Cluster) {
+    cluster.status = 'measuring';
     const start = performance.now();
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
       await fetch(cluster.endpoint, {
         method: 'HEAD',
         mode: 'no-cors',
         cache: 'no-store',
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       const end = performance.now();
       cluster.latency = Math.round(end - start);
+      cluster.status = 'success';
     } catch {
-      cluster.latency = Math.floor(Math.random() * 40) + 20;
+      cluster.latency = null;
+      cluster.status = 'fallback';
     }
   }
 
@@ -100,6 +111,8 @@
             <samp class="font-mono font-bold text-xs text-[var(--text-primary)]">
               <span class="inline-block w-1.5 h-1.5 rounded-full bg-[var(--accent)] mr-1 align-middle"></span>{cluster.latency}ms
             </samp>
+          {:else if cluster.status === 'fallback'}
+            <samp class="font-mono text-xs text-[var(--text-tertiary)]">--ms (offline)</samp>
           {:else}
             <span class="text-[var(--text-tertiary)] animate-pulse text-xs">...</span>
           {/if}

@@ -49,10 +49,10 @@ console.log("PASSED: Two-line headline ceiling 'Technical Capabilities'");
 
 // 7. Four architectural discipline columns
 const expectedCategories = [
-  "Frontend & Interfaces",
-  "Systems & Backend",
-  "Storage, Edge & DevOps",
-  "Protocols & Tools"
+  "Frontend & interfaces",
+  "Systems & backend",
+  "Storage, edge & devOps",
+  "Protocols & tools"
 ];
 
 for (const cat of expectedCategories) {
@@ -80,12 +80,12 @@ if (!fileContent.includes("skill.isHighlighted") || !fileContent.includes("bg-[v
 }
 console.log("PASSED: Discrete pastel-pink indicator pip on highlighted skills");
 
-// 10. Verified Modules counter
-if (!fileContent.includes("Verified Modules")) {
-  console.error("FAIL: Missing Verified Modules counter");
+// 10. Verified Competencies counter
+if (!fileContent.includes("verified competencies")) {
+  console.error("FAIL: Missing verified competencies counter");
   process.exit(1);
 }
-console.log("PASSED: Verified Modules footer counter present in each discipline column");
+console.log("PASSED: Verified competencies footer counter present in each discipline column");
 
 // 11. Test seed skills mapping
 function getSkillsByCategory(category: string, skills: any[]) {
